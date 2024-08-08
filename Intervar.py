@@ -57,7 +57,10 @@ InterVar homepage: <http://wInterVar.wglab.org>
 
 line_sum=0;
 
-if platform.python_version()< '3.0.0' :
+is_user_evidence_exist=False
+is_exclude_snps_exist=False
+
+if platform.python_version() < '3.0.0' :
     import ConfigParser
 else:
     import configparser
@@ -76,9 +79,6 @@ def ConfigSectionMap(config,section):
             print("exception on %s!" % option)
             paras[option] = None
     return
-
-user_evidence_dict={}
-
 
 class myGzipFile(gzip.GzipFile): 
     def __enter__(self): 
@@ -102,6 +102,7 @@ PP2_genes_dict={}
 BP1_genes_dict={}
 PS4_snps_dict={}
 exclude_snps_dict={}
+user_evidence_dict={}
 mim_recessive_dict={}
 mim_domin_dict={}
 mim_adultonset_dict={}
@@ -132,9 +133,11 @@ def flip_ACGT(acgt):
 
 def read_datasets():
 #0. read the user specified evidence file
+    global is_user_evidence_exist
     if os.path.isfile(paras['evidence_file']):
         try:
             fh=open(paras['evidence_file'], "r")
+            is_user_evidence_exist = True
             strs = fh.read()
             for line2 in strs.split('\n'):
                 cls2=line2.split('\t')
@@ -144,6 +147,7 @@ def read_datasets():
                     #print("%s" %keys)
                     user_evidence_dict[keys]=cls2[4].upper()
         except IOError:
+            is_user_evidence_exist = False
             print("Error: can\'t read the user specified evidence file %s" % paras['evidence_file'])
         else:
             fh.close()    
@@ -294,6 +298,7 @@ def read_datasets():
     if os.path.isfile(paras['exclude_snps']):
         try:
             fh=open(paras['exclude_snps'], "r")
+            is_exclude_snps_exist = True
             strs = fh.read()
             for line2 in strs.split('\n'):
                 cls2=line2.split('\t')
@@ -302,6 +307,7 @@ def read_datasets():
                     keys=re.sub("[Cc][Hh][Rr]","",keys)
                     exclude_snps_dict[keys]="1"
         except IOError:
+            is_exclude_snps_exist = False
             print("Error: can\'t read the user specified SNP list file %s" % paras['exclude_snps'])
         else:
             fh.close()    
@@ -485,10 +491,10 @@ def check_downdb():
             file_name="ALL.sites.2015_08" # hg19_ALL.sites.2015_08.txt
 
         dataset_file=paras['database_locat']+"/"+paras['buildver']+"_"+file_name+".txt"
-        if dbs != 'rmsk':
-            cmd="perl "+paras['annotate_variation']+" -buildver "+paras['buildver']+" -downdb -webfrom annovar "+file_name+" "+paras['database_locat']
         if dbs == 'rmsk':
             cmd="perl "+paras['annotate_variation']+" -buildver "+paras['buildver']+" -downdb "+file_name+" "+paras['database_locat']
+        else:
+            cmd="perl "+paras['annotate_variation']+" -buildver "+paras['buildver']+" -downdb -webfrom annovar "+file_name+" "+paras['database_locat']
         if  not os.path.isfile(dataset_file):
             if dbs=="1000g2015aug":
                 file_name="1000g2015aug"
@@ -496,8 +502,6 @@ def check_downdb():
                 cmd="perl "+paras['annotate_variation']+" -buildver "+paras['buildver']+" -downdb -webfrom annovar "+file_name+" "+paras['database_locat']
             if paras['skip_annovar'] != True:
                 print("Warning: The Annovar dataset file of %s is not in %s,begin to download this %s ..." %(dbs,paras['database_locat'],dataset_file))
-    
-            if paras['skip_annovar'] != True:
                 print("%s" %cmd)
                 os.system(cmd)
 
@@ -547,11 +551,11 @@ def check_annovar_result():
         if paras['skip_annovar'] != True:
             sys.exit()
     if inputft.lower() == 'avinput' :
-        cmd="perl "+paras['table_annovar']+" "+paras['inputfile']+" "+paras['database_locat']+" -buildver "+paras['buildver']+" -remove -out "+ paras['outfile']+" -protocol refGene,esp6500siv2_all,1000g2015aug_all,avsnp147,dbnsfp42a,clinvar_20210501,gnomad_genome,dbscsnv11,rmsk,ensGene,knownGene  -operation  g,f,f,f,f,f,f,f,r,g,g   -nastring ."+annovar_options
+        cmd="perl "+paras['table_annovar']+" "+paras['inputfile']+" "+paras['database_locat']+" -buildver "+paras['buildver']+" -remove -out "+ paras['outfile']+" -protocol refGene,esp6500siv2_all,1000g2015aug_all,avsnp147,dbnsfp42a,clinvar_20210501,gnomad_genome,gnomad_exome,dbscsnv11,rmsk,ensGene,knownGene  -operation  g,f,f,f,f,f,f,f,f,r,g,g   -nastring ."+annovar_options
         print("%s" %cmd)
         os.system(cmd)
     if inputft.lower() == 'vcf' :
-        cmd="perl "+paras['table_annovar']+" "+paras['inputfile']+".avinput "+paras['database_locat']+" -buildver "+paras['buildver']+" -remove -out "+ paras['outfile']+" -protocol refGene,esp6500siv2_all,1000g2015aug_all,avsnp147,dbnsfp42a,clinvar_20210501,gnomad_genome,dbscsnv11,rmsk,ensGene,knownGene   -operation  g,f,f,f,f,f,f,f,r,g,g   -nastring ."+annovar_options
+        cmd="perl "+paras['table_annovar']+" "+paras['inputfile']+".avinput "+paras['database_locat']+" -buildver "+paras['buildver']+" -remove -out "+ paras['outfile']+" -protocol refGene,esp6500siv2_all,1000g2015aug_all,avsnp147,dbnsfp42a,clinvar_20210501,gnomad_genome,gnomad_exome,dbscsnv11,rmsk,ensGene,knownGene   -operation  g,f,f,f,f,f,f,f,f,r,g,g   -nastring . -thread "+paras['threads']+annovar_options
         print("%s" %cmd)
         os.system(cmd)
     if inputft.lower() == 'vcf_m' :
@@ -730,6 +734,252 @@ def sum_of_list(list):
         sum=sum+i
     return(sum)
 
+def classfyv2(PVS1,PS,PM,PP,BA1,BS,BP,Allels_flgs,cls):
+    BPS=["Pathogenic","Likely pathogenic","Benign","Likely benign","Uncertain significance"]
+
+    BP7 = BP[6]
+    BS1 = BS[0]
+
+    PS_sum=sum_of_list(PS)
+    PM_sum=sum_of_list(PM)
+    PP_sum=sum_of_list(PP)
+    BS_sum=sum_of_list(BS)
+    BP_sum=sum_of_list(BP)
+
+    #print("Before up/down grade, the sum of PS %s, PM %s,PP %s,BS %s,BP %s" %(PS_sum,PM_sum,PP_sum,BS_sum,BP_sum));
+    #begin process the user's flexible grade  to get the final interpretation
+    if is_user_evidence_exist:
+        keys=cls[Allels_flgs['Chr']]+"_"+cls[Allels_flgs['Start']]+"_"+cls[Allels_flgs['Ref']]+"_"+cls[Allels_flgs['Alt']]
+        keys=re.sub("[Cc][Hh][Rr]","",keys)
+        try:
+            evds=user_evidence_dict[keys] #PS1=1;PM1=1;BA1=1;PVS1 PP BS BP
+            for evd in evds.split(';'):
+                evd_t=evd.split('=')
+                if(len(evd_t)>1 and  re.findall('grade', evd_t[0], flags=re.IGNORECASE) ):
+                    #10  104353782   G   A   PVS1=1;PP1=1;PM3=1;grade_PP1=2;
+                    if int(evd_t[1])<=3:
+                        #print ("%s %s %s " %(keys,evd_t[1],evd_t[0]))
+                        if(evd_t[0].find('PS')!=-1): 
+                            t=evd_t[0].find('PS'); 
+                            tt=evd_t[0];
+                            tt3=int(tt[t+2:t+3])
+                            PS_sum=PS_sum-1
+                            if(t<len(evd_t[0])-2 and tt3<=5 ):
+                                if int(evd_t[1]) ==1 :
+                                    PS_sum=PS_sum+1
+                                if int(evd_t[1]) ==2 :
+                                    PM_sum=PM_sum+1
+                                if int(evd_t[1]) ==3 :
+                                    PP_sum=PP_sum+1
+                        if(evd_t[0].find('PM')!=-1):
+                            t=evd_t[0].find('PM'); 
+                            tt=evd_t[0];
+                            tt3=int(tt[t+2:t+3])
+                            PM_sum=PM_sum-1
+                            if(t<len(evd_t[0])-2 and tt3<=7 ):
+                                if int(evd_t[1]) ==1 :
+                                    PS_sum=PS_sum+1
+                                if int(evd_t[1]) ==2 :
+                                    PM_sum=PM_sum+1
+                                if int(evd_t[1]) ==3 :
+                                    PP_sum=PP_sum+1
+                        if(evd_t[0].find('PP')!=-1): 
+                            t=evd_t[0].find('PP'); 
+                            tt=evd_t[0];
+                            tt3=int(tt[t+2:t+3])
+                            PP_sum=PP_sum-1
+                            if(t<len(evd_t[0])-2 and tt3<=6 ):
+                                if int(evd_t[1]) ==1 :
+                                    PS_sum=PS_sum+1
+                                if int(evd_t[1]) ==2 :
+                                    PM_sum=PM_sum+1
+                                if int(evd_t[1]) ==3 :
+                                    PP_sum=PP_sum+1
+                        if(evd_t[0].find('BS')!=-1): 
+                            t=evd_t[0].find('BS'); 
+                            tt=evd_t[0];
+                            tt3=int(tt[t+2:t+3])
+                            BS_sum=BS_sum-1
+                            if(t<len(evd_t[0])-2 and tt3<=5 ):
+                                if int(evd_t[1]) ==1 :
+                                    BS_sum=BS_sum+1
+                                if int(evd_t[1]) ==3 :
+                                    BP_sum=BP_sum+1
+                        if(evd_t[0].find('BP')!=-1):
+                            t=evd_t[0].find('BP'); 
+                            tt=evd_t[0];
+                            tt3=int(tt[t+2:t+3])
+                            BP_sum=BP_sum-1
+                            if(t<len(evd_t[0])-2 and tt3<=8 ):
+                                if int(evd_t[1]) ==1 :
+                                    BS_sum=BS_sum+1
+                                if int(evd_t[1]) ==3 :
+                                    BP_sum=BP_sum+1
+                    
+        except KeyError:
+            pass
+        else:
+            pass
+
+    # end process the user's flexible grade
+
+    #print("After up/down grade, the sum of PS %s, PM %s,PP %s,BS %s,BP %s" %(PS_sum,PM_sum,PP_sum,BS_sum,BP_sum));
+
+    #print("%d %d %d %d %d " %(PS_sum,PM_sum,PP_sum,BS_sum, BP_sum))
+    
+    # Excel logic:
+    # IF(
+    #     AND(
+    #         SUM(C7:C10)>0; SUM(C12:C14)>0
+    #     ); 
+    #     "VUS";
+    #     IF(
+    #         SUM(M5:M8;M10)<>0;
+    #         N5;
+    #         IF(
+    #             SUM(F6:F15)<>0;
+    #             G5;
+    #             IF(
+    #                 SUM(I6:I15)<>0;
+    #                 J5;
+    #                 IF(
+    #                     SUM(P6:P8)<>0;
+    #                     Q5;
+    #                     "VUS"
+    #                 )
+    #             )
+    #         )
+    #     )
+    # )
+
+    if (PVS1 == 1 or PS_sum > 0 or PM_sum > 0 or PP_sum > 0) and (BA1 == 1 or BS_sum > 0 or BP_sum > 0):
+        return (BPS[4]) # Uncertain significance x
+
+    if (
+        # M5
+        (BP7 == 1 and BP_sum >= 3)
+        or
+        # M6
+        (BA1 == 1)
+        or
+        # M7
+        (BS_sum > 1)
+        or
+        # M8
+        (BS_sum >= 1 and BP_sum >= 3)
+        or
+        # M10-1
+        (BP_sum > 2 and BP7 == 1)
+        or 
+        # M10-2
+        (BS_sum == 1 and BP_sum == 2 and BP7 == 1)
+    ):
+        return (BPS[2]) # Benign x
+
+    if (
+        # F7
+        (PVS1 == 1 and PS_sum > 0)
+        or
+        # F8
+        (PVS1 == 1 and PM_sum > 1)
+        or 
+        # F9
+        (PVS1 == 1 and PM_sum > 0 and PP_sum > 0)
+        or
+        # F10
+        (PVS1 == 1 and PP_sum > 1)
+        or
+        # F11 
+        (PS_sum > 1)
+        or
+        # F13
+        (PS_sum > 0 and PM_sum > 2)
+        or
+        # F14
+        (PS_sum > 0 and PM_sum > 1 and PP_sum > 1)
+        or
+        # F15
+        (PS_sum > 0 and PM_sum > 0 and PP_sum > 3)
+    ):
+        return (BPS[0]) # Pathogenic x
+
+    if (
+        # I6
+        (PVS1 == 1 and PM_sum == 1)
+        or
+        # I8
+        (PS_sum == 1 and PM_sum < 3 and PM_sum >= 1)
+        or
+        # I9
+        (PS_sum == 1 and PP_sum >= 2)
+        or
+        # I10
+        (PM_sum > 2)
+        or
+        # I11
+        (PM_sum > 1 and PP_sum > 1)
+        or
+        # I12
+        (PM_sum > 0 and PP_sum > 3)
+    ):
+        return (BPS[1]) # Likely pathogenic x
+
+    if (
+        # P6
+        (
+            (
+                (BP7 == 0 or BP_sum < 3) # !(BP7 == 1 and BP_sum >= 3) !M5
+                and
+                BA1 == 0 # !M6
+                and
+                BS_sum <= 1 # !M7
+            )
+            and
+            BS1 == 1
+            and
+            BS_sum >= 1
+            and 
+            BS_sum < 3
+        )
+        or
+        # P7
+        (
+            (
+                BA1 == 0 # !M6
+                and 
+                BS_sum <= 1 # !M7
+                and
+                (BS_sum == 0 or BP_sum < 3) # !M8
+                and
+                ((BP_sum <= 2 or BP7 == 0) and (BS_sum != 1 or BP_sum != 2 or BP7 == 0)) # !M10
+            )
+            and
+            BS_sum == 1
+            and
+            BP_sum >= 1
+            and
+            BP_sum < 3 
+        )
+        or
+        # P8
+        (
+            (
+                BA1 == 0 # !M6
+                and 
+                BS_sum <= 1 # !M7
+                and
+                (BS_sum == 0 or BP_sum < 3) # !M8
+                and
+                ((BP_sum <= 2 or BP7 == 0) and (BS_sum != 1 or BP_sum != 2 or BP7 == 0)) # !M10
+            )
+            and
+            BP_sum >= 2
+        )
+    ):
+        return (BPS[3]) # Likely benign
+
+    return(BPS[4]) # Uncertain significance
+
 def classfy(PVS1,PS,PM,PP,BA1,BS,BP,Allels_flgs,cls):
     BPS=["Pathogenic","Likely pathogenic","Benign","Likely benign","Uncertain significance"]
     PAS_out=-1
@@ -744,7 +994,7 @@ def classfy(PVS1,PS,PM,PP,BA1,BS,BP,Allels_flgs,cls):
 
     #print("Before up/down grade, the sum of PS %s, PM %s,PP %s,BS %s,BP %s" %(PS_sum,PM_sum,PP_sum,BS_sum,BP_sum));
     #begin process the user's flexible grade  to get the final interpretation
-    if os.path.isfile(paras['evidence_file']):
+    if is_user_evidence_exist:
         keys=cls[Allels_flgs['Chr']]+"_"+cls[Allels_flgs['Start']]+"_"+cls[Allels_flgs['Ref']]+"_"+cls[Allels_flgs['Alt']]
         keys=re.sub("[Cc][Hh][Rr]","",keys)
         try:
@@ -1685,8 +1935,8 @@ def assign(BP,line,Freqs_flgs,Funcanno_flgs,Allels_flgs):
     PP[2]=PP3
     PP4=check_PP4(line,Funcanno_flgs,Allels_flgs)
     PP[3]=PP4
-    PP5=check_PP5(line,Funcanno_flgs,Allels_flgs)
-    PP[4]=PP5
+    # PP5=check_PP5(line,Funcanno_flgs,Allels_flgs)
+    PP[4]=0 # Ignore PP5
 
 
     BA1=check_BA1(line,Freqs_flgs,Allels_flgs)
@@ -1710,16 +1960,14 @@ def assign(BP,line,Freqs_flgs,Funcanno_flgs,Allels_flgs):
     BP[3]=BP4
     BP5=check_BP5(line,Funcanno_flgs,Allels_flgs,morbidmap_dict)
     BP[4]=BP5
-    BP6=check_BP6(line,Funcanno_flgs,Allels_flgs)
-    BP[5]=BP6
+    # BP6=check_BP6(line,Funcanno_flgs,Allels_flgs)
+    BP[5]=0 # Ignore BP6 
     BP7=check_BP7(line,Funcanno_flgs,Allels_flgs)
     BP[6]=BP7
 
-    #print("PVS1=%s PS=%s PM=%s PP=%s BA1=%s BS=%s BP=%s" %(PVS1,PS,PM,PP,BA1,BS,BP))
-     
     cls=line.split('\t')
     #begin process the exclude snp list. which will affect BA1 BS1 BS2
-    if os.path.isfile(paras['exclude_snps']):
+    if is_exclude_snps_exist:
         keys=cls[Allels_flgs['Chr']]+"_"+cls[Allels_flgs['Start']]+"_"+cls[Allels_flgs['Ref']]+"_"+cls[Allels_flgs['Alt']]
         keys=re.sub("[Cc][Hh][Rr]","",keys)
         try:
@@ -1732,7 +1980,7 @@ def assign(BP,line,Freqs_flgs,Funcanno_flgs,Allels_flgs):
         else:
             pass
     #begin process the user's evidence file
-    if os.path.isfile(paras['evidence_file']):
+    if is_user_evidence_exist:
         keys=cls[Allels_flgs['Chr']]+"_"+cls[Allels_flgs['Start']]+"_"+cls[Allels_flgs['Ref']]+"_"+cls[Allels_flgs['Alt']]
         keys=re.sub("[Cc][Hh][Rr]","",keys)
         try:
@@ -1775,12 +2023,11 @@ def assign(BP,line,Freqs_flgs,Funcanno_flgs,Allels_flgs):
             pass
         else:
             pass
-
     # end process the user's evidence file 
 
     cls=line.split('\t')
     if len(cls)>1:#esp6500siv2_all 1000g2015aug_all gnomAD_genome_ALL    
-        BP_out=classfy(PVS1,PS,PM,PP,BA1,BS,BP,Allels_flgs,cls)
+        BP_out=classfyv2(PVS1,PS,PM,PP,BA1,BS,BP,Allels_flgs,cls)
         line_t="%s PVS1=%s PS=%s PM=%s PP=%s BA1=%s BS=%s BP=%s" %(BP_out,PVS1,PS,PM,PP,BA1,BS,BP)
 
         #print("%s " % BP_out)
@@ -1916,6 +2163,9 @@ def main():
 
     parser.add_option("-o", "--output", dest="output", action="store",
                   help="The prefix of output file which contains the results, the file of results will be as [$$prefix].intervar ", metavar="example/myanno")
+    
+    parser.add_option("-T", "--threads", dest="threads", action="store",
+                  help="The number of threads to be used in annovar (annovar_table) annotation", metavar="threads")
 
 
     group = optparse.OptionGroup(parser, "InterVar Other Options")
@@ -1986,6 +2236,8 @@ def main():
             print("Error: The config file [ %s ] is not here,please check the path of your config file." % options.config)
             sys.exit()
 
+    if options.threads != None:
+        paras['threads']=options.threads
     if options.buildver != None:
         paras['buildver']=options.buildver
     if options.database_locat != None:
@@ -2019,6 +2271,8 @@ def main():
         paras['bs2_snps'] = paras['database_intervar']+'/BS2_hom_het'
         paras['exclude_snps'] = paras['database_intervar']+'/ext.variants'
 
+    # Update database for specific assembly
+    paras['database_locat'] = paras['database_locat']+'/'+str(paras['buildver'])+'/humandb'
 
     paras['lof_genes'] = paras['lof_genes']+'.'+paras['buildver']
     paras['pm1_domain'] = paras['pm1_domain']+'.'+paras['buildver']
