@@ -5,7 +5,7 @@ def sum_of_list(list):
     return(sum)
 
 
-1, [0,0,0,0], [0,1,0,0,0,0], [0,0,0,0,0], 0, [0,0,0,0], [0,0,0,0,0,0,0]
+# 1, [0,0,0,0], [0,1,0,0,0,0], [0,0,0,0,0], 0, [0,0,0,0], [0,0,0,0,0,0,0]
 
 def classfyv2(PVS1,PS,PM,PP,BA1,BS,BP):
     BPS=["Pathogenic","Likely pathogenic","Benign","Likely benign","Uncertain significance"]
@@ -171,3 +171,7 @@ def classfyv2(PVS1,PS,PM,PP,BA1,BS,BP):
         return (BPS[3]) # Likely benign
 
     return(BPS[4]) # Uncertain significance
+
+
+cls = classfyv2(1, [0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], 0, [1, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0] )
+print(cls)
