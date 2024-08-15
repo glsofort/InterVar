@@ -122,6 +122,23 @@ def classify(PVS1, PS, PM, PP, BA1, BS, BP):
     #     )
     # )
 
+    # Exception for only PM2_Supporting and PVS1 exist -> LP
+    try:
+        if (
+            PVS1 == 1
+            and PS_sum == 0
+            and PM_sum == 0
+            and PP_sum == 1
+            and BA1 == 0
+            and BS_sum == 0
+            and BP_sum == 0
+        ):
+            PM2_Supporting = PP[6]
+            if PM2_Supporting == 1:
+                return BPS[1]
+    except KeyError:
+        pass
+
     if (PVS1 == 1 or PS_sum > 0 or PM_sum > 0 or PP_sum > 0) and (
         BA1 == 1 or BS_sum > 0 or BP_sum > 0
     ):

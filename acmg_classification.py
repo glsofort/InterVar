@@ -51,6 +51,23 @@ def classfyv2(PVS1, PS, PM, PP, BA1, BS, BP):
     #     )
     # )
 
+    # Exception for only PM2_Supporting and PVS1 exist -> LP
+    try:
+        if (
+            PVS1 == 1
+            and PS_sum == 0
+            and PM_sum == 0
+            and PP_sum == 1
+            and BA1 == 0
+            and BS_sum == 0
+            and BP_sum == 0
+        ):
+            PM2_Supporting = PP[6]
+            if PM2_Supporting == 1:
+                return BPS[1]
+    except KeyError:
+        pass
+
     if (PVS1 == 1 or PS_sum > 0 or PM_sum > 0 or PP_sum > 0) and (
         BA1 == 1 or BS_sum > 0 or BP_sum > 0
     ):
@@ -173,13 +190,106 @@ def classfyv2(PVS1, PS, PM, PP, BA1, BS, BP):
     return BPS[4]  # Uncertain significance
 
 
-cls = classfyv2(
-    0,
-    [0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0],
-    0,
-    [1, 1, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0],
-)
-print(cls)  # VUS
+# Example run
+def test():
+    evd = {
+        # PVS1
+        "PVS1": 1,
+        # PS
+        "PS1": 0,
+        "PS2": 0,
+        "PS3": 0,
+        "PS4": 0,
+        "PVS1_Strong": 0,
+        "PP3_Strong": 0,
+        # PM
+        "PM1": 0,
+        "PM2": 0,
+        "PM3": 0,
+        "PM4": 0,
+        "PM5": 0,
+        "PM6": 0,
+        "PVS1_Moderate": 0,
+        "PP3_Moderate": 0,
+        # PP
+        "PP1": 0,
+        "PP2": 0,
+        "PP3": 0,
+        "PP4": 1,
+        "PP5": 0,
+        "PVS1_Supporting": 0,
+        "PM2_Supporting": 1,
+        # BA1
+        "BA1": 0,
+        # BS
+        "BS1": 0,
+        "BS2": 0,
+        "BS3": 0,
+        "BS4": 0,
+        "BP4_Strong": 0,
+        # BP
+        "BP1": 0,
+        "BP2": 0,
+        "BP3": 0,
+        "BP4": 0,
+        "BP5": 0,
+        "BP6": 0,
+        "BP7": 0,
+    }
+
+    # List of evidences
+    PVS1 = evd["PVS1"]
+    PS = [
+        evd["PS1"],
+        evd["PS2"],
+        evd["PS3"],
+        evd["PS4"],
+        evd["PVS1_Strong"],
+        evd["PP3_Strong"],
+    ]
+    PM = [
+        evd["PM1"],
+        evd["PM2"],
+        evd["PM3"],
+        evd["PM4"],
+        evd["PM5"],
+        evd["PM6"],
+        evd["PVS1_Moderate"],
+        evd["PP3_Moderate"],
+    ]
+    PP = [
+        evd["PP1"],
+        evd["PP2"],
+        evd["PP3"],
+        evd["PP4"],
+        evd["PP5"],
+        evd["PVS1_Supporting"],
+        evd["PM2_Supporting"],
+    ]
+    BA1 = evd["BA1"]
+    BS = [evd["BS1"], evd["BS2"], evd["BS3"], evd["BS4"], evd["BP4_Strong"]]
+    BP = [
+        evd["BP1"],
+        evd["BP2"],
+        evd["BP3"],
+        evd["BP4"],
+        evd["BP5"],
+        evd["BP6"],
+        evd["BP7"],
+    ]
+
+    cls = classfyv2(
+        PVS1,
+        PS,
+        PM,
+        PP,
+        BA1,
+        BS,
+        BP,
+    )
+
+    print(f"Evidences: {','.join([i for i in evd if evd[i] == 1])}")
+    print(f"ACMG: {cls}")
+
+
+test()
