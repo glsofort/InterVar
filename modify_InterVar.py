@@ -484,9 +484,9 @@ def modify_intervar_info(row):
         # 4. PP3, BP4
         # Check PP3
         PP3_strength = check_PP3(REVEL, SpliceAI)
+        PP[2] = 0
         if PP3_strength != nas_string:
             PP3_modified = 1
-            PP[2] = 0
         if PP3_strength == Strength["Strong"]:
             PS[5] = 1
         elif PP3_strength == Strength["Moderate"]:
@@ -495,9 +495,9 @@ def modify_intervar_info(row):
             PP[2] = 1
         # Check BP4
         BP4_strength = check_BP4(REVEL)
+        BP[3] = 0
         if BP4_strength != nas_string:
             BP4_modified = 1
-            BP[3] = 0
         # Trigger BA1
         if BP4_strength == Strength["VeryStrong"]:
             BA1 = 1
