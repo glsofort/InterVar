@@ -1,29 +1,36 @@
 def sum_of_list(list):
-    sum=0
+    sum = 0
     for i in list:
-        sum=sum+i
-    return(sum)
+        sum = sum + i
+    return sum
 
 
 # 1, [0,0,0,0], [0,1,0,0,0,0], [0,0,0,0,0], 0, [0,0,0,0], [0,0,0,0,0,0,0]
 
-def classfyv2(PVS1,PS,PM,PP,BA1,BS,BP):
-    BPS=["Pathogenic","Likely pathogenic","Benign","Likely benign","Uncertain significance"]
+
+def classfyv2(PVS1, PS, PM, PP, BA1, BS, BP):
+    BPS = [
+        "Pathogenic",
+        "Likely pathogenic",
+        "Benign",
+        "Likely benign",
+        "Uncertain significance",
+    ]
 
     BP7 = BP[6]
     BS1 = BS[0]
 
-    PS_sum=sum_of_list(PS)
-    PM_sum=sum_of_list(PM)
-    PP_sum=sum_of_list(PP)
-    BS_sum=sum_of_list(BS)
-    BP_sum=sum_of_list(BP)
-    
+    PS_sum = sum_of_list(PS)
+    PM_sum = sum_of_list(PM)
+    PP_sum = sum_of_list(PP)
+    BS_sum = sum_of_list(BS)
+    BP_sum = sum_of_list(BP)
+
     # Excel logic:
     # IF(
     #     AND(
     #         SUM(C7:C10)>0; SUM(C12:C14)>0
-    #     ); 
+    #     );
     #     "VUS";
     #     IF(
     #         SUM(M5:M8;M10)<>0;
@@ -44,8 +51,10 @@ def classfyv2(PVS1,PS,PM,PP,BA1,BS,BP):
     #     )
     # )
 
-    if (PVS1 == 1 or PS_sum > 0 or PM_sum > 0 or PP_sum > 0) and (BA1 == 1 or BS_sum > 0 or BP_sum > 0):
-        return (BPS[4]) # Uncertain significance x
+    if (PVS1 == 1 or PS_sum > 0 or PM_sum > 0 or PP_sum > 0) and (
+        BA1 == 1 or BS_sum > 0 or BP_sum > 0
+    ):
+        return BPS[4]  # Uncertain significance x
 
     if (
         # M5
@@ -62,11 +71,11 @@ def classfyv2(PVS1,PS,PM,PP,BA1,BS,BP):
         or
         # M10-1
         (BP_sum > 2 and BP7 == 1)
-        or 
+        or
         # M10-2
         (BS_sum == 1 and BP_sum == 2 and BP7 == 1)
     ):
-        return (BPS[2]) # Benign x
+        return BPS[2]  # Benign x
 
     if (
         # F7
@@ -74,14 +83,14 @@ def classfyv2(PVS1,PS,PM,PP,BA1,BS,BP):
         or
         # F8
         (PVS1 == 1 and PM_sum > 1)
-        or 
+        or
         # F9
         (PVS1 == 1 and PM_sum > 0 and PP_sum > 0)
         or
         # F10
         (PVS1 == 1 and PP_sum > 1)
         or
-        # F11 
+        # F11
         (PS_sum > 1)
         or
         # F13
@@ -93,7 +102,7 @@ def classfyv2(PVS1,PS,PM,PP,BA1,BS,BP):
         # F15
         (PS_sum > 0 and PM_sum > 0 and PP_sum > 3)
     ):
-        return (BPS[0]) # Pathogenic x
+        return BPS[0]  # Pathogenic x
 
     if (
         # I6
@@ -114,64 +123,63 @@ def classfyv2(PVS1,PS,PM,PP,BA1,BS,BP):
         # I12
         (PM_sum > 0 and PP_sum > 3)
     ):
-        return (BPS[1]) # Likely pathogenic x
+        return BPS[1]  # Likely pathogenic x
 
     if (
         # P6
         (
             (
-                (BP7 == 0 or BP_sum < 3) # !(BP7 == 1 and BP_sum >= 3) !M5
-                and
-                BA1 == 0 # !M6
-                and
-                BS_sum <= 1 # !M7
+                (BP7 == 0 or BP_sum < 3)  # !(BP7 == 1 and BP_sum >= 3) !M5
+                and BA1 == 0  # !M6
+                and BS_sum <= 1  # !M7
             )
-            and
-            BS1 == 1
-            and
-            BS_sum >= 1
-            and 
-            BS_sum < 3
+            and BS1 == 1
+            and BS_sum >= 1
+            and BS_sum < 3
         )
         or
         # P7
         (
             (
-                BA1 == 0 # !M6
-                and 
-                BS_sum <= 1 # !M7
-                and
-                (BS_sum == 0 or BP_sum < 3) # !M8
-                and
-                ((BP_sum <= 2 or BP7 == 0) and (BS_sum != 1 or BP_sum != 2 or BP7 == 0)) # !M10
+                BA1 == 0  # !M6
+                and BS_sum <= 1  # !M7
+                and (BS_sum == 0 or BP_sum < 3)  # !M8
+                and (
+                    (BP_sum <= 2 or BP7 == 0)
+                    and (BS_sum != 1 or BP_sum != 2 or BP7 == 0)
+                )  # !M10
             )
-            and
-            BS_sum == 1
-            and
-            BP_sum >= 1
-            and
-            BP_sum < 3 
+            and BS_sum == 1
+            and BP_sum >= 1
+            and BP_sum < 3
         )
         or
         # P8
         (
             (
-                BA1 == 0 # !M6
-                and 
-                BS_sum <= 1 # !M7
-                and
-                (BS_sum == 0 or BP_sum < 3) # !M8
-                and
-                ((BP_sum <= 2 or BP7 == 0) and (BS_sum != 1 or BP_sum != 2 or BP7 == 0)) # !M10
+                BA1 == 0  # !M6
+                and BS_sum <= 1  # !M7
+                and (BS_sum == 0 or BP_sum < 3)  # !M8
+                and (
+                    (BP_sum <= 2 or BP7 == 0)
+                    and (BS_sum != 1 or BP_sum != 2 or BP7 == 0)
+                )  # !M10
             )
-            and
-            BP_sum >= 2
+            and BP_sum >= 2
         )
     ):
-        return (BPS[3]) # Likely benign
+        return BPS[3]  # Likely benign
 
-    return(BPS[4]) # Uncertain significance
+    return BPS[4]  # Uncertain significance
 
 
-cls = classfyv2(1, [0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], 0, [1, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0] )
-print(cls)
+cls = classfyv2(
+    0,
+    [0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0],
+    0,
+    [1, 1, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0],
+)
+print(cls)  # VUS
