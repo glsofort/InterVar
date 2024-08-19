@@ -905,8 +905,8 @@ def run(input, output, clinvar):
 
     start_time = time.time()
 
-    calculate_metrics(output=output)
-    sys.exit()
+    # calculate_metrics(output=output)
+    # sys.exit()
 
     # Load Clinvar VCF
     clinvar_vcf = VCF(clinvar)
