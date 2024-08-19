@@ -629,6 +629,7 @@ def modify_intervar_info(row):
 
     InterVar_priority = 6
     InterVar_priority_modified = 6
+    InterVar_priority_restricted = 6
 
     InterVar_evidences = get_evidences(InterVar)
     InterVar_evidences_modified = nas_string
@@ -745,6 +746,7 @@ def modify_intervar_info(row):
             InterVar_cls_restricted, PVS1, PS, PM, PP, BA1, BS, BP
         )
         InterVar_evidences_restricted = get_evidences(InterVar_restricted)
+        InterVar_priority_restricted = get_priority(InterVar_cls_restricted)
 
     result = {
         "key": row["chr_pos_ref_alt"] + "_" + row["gene"],
@@ -763,6 +765,7 @@ def modify_intervar_info(row):
         "InterVar_evidences_restricted": InterVar_evidences_restricted,
         "InterVar_restricted": InterVar_restricted,
         "restrict_list": ",".join(restrict_list) if len(restrict_list) else nas_string,
+        "InterVar_priority_restricted": InterVar_priority_restricted
     }
     return result
 
