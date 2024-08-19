@@ -3,6 +3,7 @@ import pandas as pd
 import os
 import ast
 import sys
+import re
 from cyvcf2 import VCF
 import time
 import subprocess
@@ -70,6 +71,15 @@ metrics_BEN = {
     "VUS": 0,
     "LB": 0,
 }
+
+# Evidences list:
+PVS1_standalone = "PVS1"
+PS_list = ["PS1", "PS2", "PS3", "PS4", "PVS1_Strong", "PP3_Strong"]
+PM_list = ["PM1", "PM2", "PM3", "PM4", "PM5", "PM6", "PVS1_Moderate", "PP3_Moderate"]
+PP_list = ["PP1", "PP2", "PP3", "PP4", "PP5", "PVS1_Supporting", "PM2_Supporting"]
+BA1_standalone = "BA1"
+BS_list = ["BS1", "BS2", "BS3", "BS4", "BP4_Strong"]
+BP_list = ["BP1", "BP2", "BP3", "BP4", "BP5", "BP6", "BP7"]
 
 
 def sum_of_list(list):
@@ -338,8 +348,193 @@ def check_BP4(REVEL):
     return nas_string
 
 
+def check_truncating_variant(coding_effects, var_locations, cnomen):
+    """
+    Splicing Variant meet one of the following conditions:
+        1. Variant with var_locations contain: "splicing"
+        2. cnomen with pattern r'^c\.\d+[\+\-]([3-9]|10)[ATCG].*' or pattern r'^c\.\d+[\+\-][12][ATCG].*'
+    Variant with coding_effects contain one of the following:
+        1. "Frameshift"
+        2. "Start loss"
+        3. "Start retained"
+        4. "Stop gained"
+        5. "Stop lost"
+        6. "Stop retained"
+    """
+    # Splicing variant
+    if (
+        "splicing" in var_locations
+        or re.match(r"^c\.\d+[\+\-]([3-9]|10)[ATCG].*", cnomen)
+        or re.match(r"^c\.\d+[\+\-][12][ATCG].*", cnomen)
+    ):
+        return True
+
+    # Coding Effect conditions
+    valid_coding_effects = [
+        "frameshift",
+        "start loss",
+        "start retained",
+        "stop gained",
+        "stop lost",
+        "stop retained",
+    ]
+
+    # Convert arrays to sets and check for intersection
+    if set(valid_coding_effects) & set(coding_effects):
+        return True
+
+    return False
+
+
+def check_missense_variant(coding_effects):
+    if "missense" in coding_effects:
+        return True
+    return False
+
+
+def check_inframe_indel_variant(coding_effects):
+    if "inframe insertion" in coding_effects or "inframe deletion" in coding_effects:
+        return True
+    return False
+
+
+def check_synonymous_variant(coding_effects):
+    if "synonymous" in coding_effects:
+        return True
+    return False
+
+
+def do_restrict_evidences(
+    is_truncating, is_missense, is_inframe_indel, is_synonymous, PS, PM, PP, BP
+):
+    match_list = []
+    """
+          Truncating  Missense    Inframe Indel   Synonymous
+    * PS1     X           /             X             X
+      PS2     /           /             /             /
+      PS3     /           /             /             /
+      PS4     /           /             /             /
+    * PM1     X           /             /             X
+      PM2     /           /             /             /
+      PM3     /           /             /             /
+    * PM4     X           X             /             X
+    * PM5     X           /             X             X
+      PM6     /           /             /             /
+      PP1     /           /             /             /
+    * PP2     X           /             X             X
+    * PP3     X           /             /             /
+      PP4     /           /             /             /
+    * PP5     X           X             X             X
+
+      BA1     /           /             /             /
+      BS1     /           /             /             /
+      BS2     /           /             /             /
+      BS3     /           /             /             /
+      BS4     /           /             /             /
+    * BP1     X           /             X             X
+      BP2     /           /             /             /
+    * BP3     X           X             /             X
+    * BP4     X           /             /             /
+      BP5     /           /             /             /
+    * BP6     X           X             X             X
+    * BP7     X           X             X             /
+    """
+
+    # PS1 & PM5 & PP2 & BP1
+    if not is_missense and (is_truncating or is_inframe_indel or is_synonymous):
+        # PS1
+        PS[0] = 0
+        # PM5
+        PM[4] = 0
+        # PP2
+        PP[1] = 0
+        # BP1
+        BP[0] = 0
+        match_list.extend([PS_list[0], PM_list[4], PP_list[1], BP_list[0]])
+
+    # PM1
+    if not is_missense and not is_inframe_indel and (is_truncating or is_synonymous):
+        PM[0] = 0
+        match_list.append(PM_list[0])
+
+    # PM4
+    if not is_inframe_indel and (is_truncating or is_missense or is_synonymous):
+        # PM4
+        PM[3] = 0
+        # BP3
+        BP[2] = 0
+        match_list.extend([PM_list[3], BP_list[2]])
+
+    # PM5 same condition with PS1
+
+    # PP2 same condition with PS1
+
+    # PP3
+    if is_truncating and not is_missense and not is_inframe_indel and not is_synonymous:
+        # PP3
+        PP[2] = 0
+        # BP4
+        BP[3] = 0
+        match_list.extend([PP_list[2], BP_list[3]])
+
+    # PP5
+    if is_truncating and is_missense and is_inframe_indel and is_synonymous:
+        # PP5
+        PP[4] = 0
+        # BP6
+        BP[5] = 0
+        match_list.extend([PP_list[4], BP_list[5]])
+
+    # BP1 same condition with PS1
+
+    # BP3 same condition with PM4
+
+    # BP4 same condition with PP3
+
+    # BP6 same condition with PP5
+
+    # BP7
+    if not is_synonymous and (is_truncating or is_missense or is_inframe_indel):
+        BP[6] = 0
+        match_list.append(BP_list[6])
+
+    return PS, PM, PP, BP, match_list
+
+
+def restrict_evidences(variant, PS, PM, PP, BP):
+    vcoding_effect = variant["coding_effect"]
+    vvar_location = variant["var_location"]
+    cnomen = variant["c_nomen"]
+
+    coding_effects = [e.lower() for e in vcoding_effect.split(", ")]
+    var_locations = [e.lower() for e in vvar_location.split(", ")]
+
+    # Check Truncating variant
+    is_truncating = check_truncating_variant(coding_effects, var_locations, cnomen)
+
+    # Check Missense variant
+    is_missense = check_missense_variant(coding_effects)
+
+    # Check Inframe Indel variant
+    is_inframe_indel = check_inframe_indel_variant(coding_effects)
+
+    # Check Synonymous variant
+    is_synonymous = check_synonymous_variant(coding_effects)
+
+    # Restrict evidences based on variant type
+    PS, PM, PP, BP, match_list = do_restrict_evidences(
+        is_truncating, is_missense, is_inframe_indel, is_synonymous, PS, PM, PP, BP
+    )
+
+    return PS, PM, PP, BP, match_list
+
+
 def format_list(list):
     return ", ".join([str(e) for e in list])
+
+
+def get_InterVar_str(cls, PVS1, PS, PM, PP, BA1, BS, BP):
+    return f"InterVar: {cls} PVS1={PVS1} PS=[{format_list(PS)}] PM=[{format_list(PM)}] PP=[{format_list(PP)}] BA1={BA1} BS=[{format_list(BS)}] BP=[{format_list(BP)}]"
 
 
 def get_evidences(intervar):
@@ -434,9 +629,15 @@ def modify_intervar_info(row):
 
     InterVar_priority = 6
     InterVar_priority_modified = 6
+    InterVar_priority_restricted = 6
 
     InterVar_evidences = get_evidences(InterVar)
     InterVar_evidences_modified = nas_string
+    InterVar_evidences_restricted = nas_string
+
+    InterVar_cls_restricted = nas_string
+    InterVar_restricted = nas_string
+    restrict_list = []
 
     PVS1 = nas_string
     PS = nas_string
@@ -510,6 +711,7 @@ def modify_intervar_info(row):
             PM[7] = 1
         elif PP3_strength == Strength["Supporting"]:
             PP[2] = 1
+
         # Check BP4
         BP4_strength = check_BP4(REVEL)
         BP[3] = 0
@@ -528,11 +730,23 @@ def modify_intervar_info(row):
 
         # InterVar modification
         # InterVar: Benign PVS1=0 PS=[0, 0, 0, 0, 0, 0] PM=[0, 0, 0, 0, 0, 0, 0, 0] PP=[0, 0, 0, 0, 0, 0, 0, 0] BA1=1 BS=[1, 0, 0, 0, 0] BP=[0, 0, 0, 0, 0, 0, 0, 0]
-        InterVar_modified = f"InterVar: {InterVar_cls_modified} PVS1={PVS1} PS=[{format_list(PS)}] PM=[{format_list(PM)}] PP=[{format_list(PP)}] BA1={BA1} BS=[{format_list(BS)}] BP=[{format_list(BP)}]"
+        InterVar_modified = get_InterVar_str(
+            InterVar_cls_modified, PVS1, PS, PM, PP, BA1, BS, BP
+        )
 
         InterVar_evidences_modified = get_evidences(InterVar_modified)
 
         InterVar_priority_modified = get_priority(InterVar_cls_modified)
+
+        # Restrict evidences
+        PS, PM, PP, BP, restrict_list = restrict_evidences(row, PS, PM, PP, BP)
+
+        InterVar_cls_restricted = classify(PVS1, PS, PM, PP, BA1, BS, BP)
+        InterVar_restricted = get_InterVar_str(
+            InterVar_cls_restricted, PVS1, PS, PM, PP, BA1, BS, BP
+        )
+        InterVar_evidences_restricted = get_evidences(InterVar_restricted)
+        InterVar_priority_restricted = get_priority(InterVar_cls_restricted)
 
     result = {
         "key": row["chr_pos_ref_alt"] + "_" + row["gene"],
@@ -547,6 +761,11 @@ def modify_intervar_info(row):
         "InterVar_priority_modified": InterVar_priority_modified,
         "InterVar": InterVar,
         "InterVar_modified": InterVar_modified,
+        "InterVar_cls_restricted": InterVar_cls_restricted,
+        "InterVar_evidences_restricted": InterVar_evidences_restricted,
+        "InterVar_restricted": InterVar_restricted,
+        "restrict_list": ",".join(restrict_list) if len(restrict_list) else nas_string,
+        "InterVar_priority_restricted": InterVar_priority_restricted
     }
     return result
 
@@ -596,14 +815,98 @@ def calculate_metrics(output):
     cmd = "awk -F\"\t\" '{if($8 == 1) { print $0 }}' " + result + " > BP4.log"
     run_cmd(cmd)
 
+    # Add log for restriction
+    cmd = (
+        'awk -F"\t" \'{if($16 != ".") { split($16,a,","); split($6,b,","); found=0; for(i in a){ for(j in b){ if(a[i] == b[j]) { found=1; } } }; if(found == 1){print $1"\t"$4"\t"$6"\t"$13"\t"$14"\t"$16 }}}\' '
+        + result
+        + " > restrict.log"
+    )
+    run_cmd(cmd)
+
+    # Classifications after restriction
+    print("------------------------------------------------")
+    print("Compare between modified & restriction result")
+    for k, v in R_CLS.items():
+        print(f"{v} to others:")
+        oth = {}
+        for k2, v2 in R_CLS.items():
+            if k2 != k:
+                cmd = (
+                    'awk -F"\t" \'{if($4 != $13 && $4 == "'
+                    + k
+                    + '" && $13 == "'
+                    + k2
+                    + '") { print $1"\t"$4"\t"$13 }}\' '
+                    + result
+                    + " | wc -l"
+                )
+                res = run_cmd(cmd)
+                oth[v2] = int(res)
+        print(oth)
+
+    # Classifications between original and restricted version
+    print("------------------------------------------------")
+    print("Compare between original & restriction result")
+    for k, v in R_CLS.items():
+        print(f"{v} to others:")
+        oth = {}
+        for k2, v2 in R_CLS.items():
+            if k2 != k:
+                cmd = (
+                    'awk -F"\t" \'{if($3 != $13 && $3 == "'
+                    + k
+                    + '" && $13 == "'
+                    + k2
+                    + '") { print $1"\t"$3"\t"$13 }}\' '
+                    + result
+                    + " | wc -l"
+                )
+                res = run_cmd(cmd)
+                oth[v2] = int(res)
+        print(oth)
+
+    # Total result
+    print("------------------------------------------------")
+    r = {}
+    for k, v in R_CLS.items():
+        cmd = (
+            'awk -F"\t" \'{ if ($3 == "' + k + "\"){ print; } }' " + result + " | wc -l"
+        )
+        res = run_cmd(cmd)
+        r[v] = int(res)
+
+    print("Total original result: " + str(r))
+    r = {}
+    for k, v in R_CLS.items():
+        cmd = (
+            'awk -F"\t" \'{ if ($4 == "' + k + "\"){ print; } }' " + result + " | wc -l"
+        )
+        res = run_cmd(cmd)
+        r[v] = int(res)
+
+    print("Total modified result: " + str(r))
+    r = {}
+    for k, v in R_CLS.items():
+        cmd = (
+            'awk -F"\t" \'{ if ($13 == "'
+            + k
+            + "\"){ print; } }' "
+            + result
+            + " | wc -l"
+        )
+        res = run_cmd(cmd)
+        r[v] = int(res)
+
+    print("Total final result: " + str(r))
+
 
 def run(input, output, clinvar):
     global clinvar_vcf
 
     start_time = time.time()
 
-    # calculate_metrics(output=output)
-    # sys.exit()
+    calculate_metrics(output=output)
+    sys.exit()
 
     # Load Clinvar VCF
     clinvar_vcf = VCF(clinvar)

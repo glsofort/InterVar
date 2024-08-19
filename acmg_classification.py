@@ -215,10 +215,10 @@ def test():
         "PP1": 0,
         "PP2": 0,
         "PP3": 0,
-        "PP4": 1,
+        "PP4": 0,
         "PP5": 0,
         "PVS1_Supporting": 0,
-        "PM2_Supporting": 1,
+        "PM2_Supporting": 0,
         # BA1
         "BA1": 0,
         # BS
