@@ -765,7 +765,7 @@ def modify_intervar_info(row):
         "InterVar_evidences_restricted": InterVar_evidences_restricted,
         "InterVar_restricted": InterVar_restricted,
         "restrict_list": ",".join(restrict_list) if len(restrict_list) else nas_string,
-        "InterVar_priority_restricted": InterVar_priority_restricted
+        "InterVar_priority_restricted": InterVar_priority_restricted,
     }
     return result
 
