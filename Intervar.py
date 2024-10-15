@@ -458,7 +458,7 @@ def read_datasets():
     else:
         fh.close()   
 
-    print(f"read_datasets() took {time.time() - start_time:.2f} seconds")
+    print("read_datasets() took %s seconds", time.time() - start_time)
 #end read datasets
     return
 
@@ -536,7 +536,8 @@ def check_input():
                     % paras['convert2annovar'])
             if paras['skip_annovar']  != True:
                 sys.exit()
-    print(f"check_input() took {time.time() - start_time:.2f} seconds")
+
+    print("check_input() took %s seconds", time.time() - start_time)
     return
 
 def check_annovar_result():
@@ -570,7 +571,7 @@ def check_annovar_result():
             print("%s" %cmd)
             os.system(cmd)
         
-    print(f"check_annovar_result() took {time.time() - start_time:.2f} seconds")
+    print("check_annovar_result() took %s seconds", time.time() - start_time)
     return
 
 
@@ -2364,7 +2365,7 @@ def main():
             some_file_fail=some_file_fail+1 
             print ("Warning: The InterVar seems not run correctly, please check your inputs and options in configure file")
 
-    print(f"process annovar result took {time.time() - start_time:.2f} seconds")
+    print("process annovar result took %s seconds", time.time() - start_time)
 
     if inputft.lower() == 'vcf_m' :
         print ("Notice: The InterVar for VCF with multiple samples is finished, the output file is as [ %s.<samplename>.intervar ]" % annovar_outfile)
