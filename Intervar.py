@@ -132,6 +132,7 @@ def flip_ACGT(acgt):
     return(nt)
 
 def read_datasets():
+    start_time = time.time()
 #0. read the user specified evidence file
     global is_user_evidence_exist
     if os.path.isfile(paras['evidence_file']):
@@ -457,7 +458,7 @@ def read_datasets():
     else:
         fh.close()   
 
-
+    print(f"read_datasets() took {time.time() - start_time:.2f} seconds")
 #end read datasets
     return
 
@@ -506,6 +507,7 @@ def check_downdb():
                 os.system(cmd)
 
 def check_input():
+    start_time = time.time()
     inputft= paras['inputfile_type']
     if inputft.lower() == 'avinput' :
         return
@@ -534,9 +536,11 @@ def check_input():
                     % paras['convert2annovar'])
             if paras['skip_annovar']  != True:
                 sys.exit()
+    print(f"check_input() took {time.time() - start_time:.2f} seconds")
     return
 
 def check_annovar_result():
+    start_time = time.time()
 # table_annovar.pl example/ex1.avinput humandb/ -buildver hg19 -out myanno -remove -protocol refGene,esp6500siv2_all,1000g2015aug_all,avsnp147,ljb26_all,CLINSIG,gnomad_genome   -operation  g,f,f,f,f,f,f   -nastring . -csvout
     inputft= paras['inputfile_type']
     annovar_options=" "
@@ -566,7 +570,7 @@ def check_annovar_result():
             print("%s" %cmd)
             os.system(cmd)
         
-    
+    print(f"check_annovar_result() took {time.time() - start_time:.2f} seconds")
     return
 
 
@@ -2344,6 +2348,7 @@ def main():
     inputft= paras['inputfile_type']
     some_file_fail=0
     out_annf=0; 
+    start_time = time.time()
     for annovar_outfile  in glob.iglob(paras['outfile']+"*."+paras['buildver']+"_multianno.txt"):
         sum1=check_genes(annovar_outfile)
         sum2=my_inter_var(annovar_outfile)
@@ -2358,6 +2363,8 @@ def main():
         else:
             some_file_fail=some_file_fail+1 
             print ("Warning: The InterVar seems not run correctly, please check your inputs and options in configure file")
+
+    print(f"process annovar result took {time.time() - start_time:.2f} seconds")
 
     if inputft.lower() == 'vcf_m' :
         print ("Notice: The InterVar for VCF with multiple samples is finished, the output file is as [ %s.<samplename>.intervar ]" % annovar_outfile)
