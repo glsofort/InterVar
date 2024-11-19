@@ -648,7 +648,7 @@ def modify_intervar_info(row):
     BP = nas_string
 
     # Extract InterVar evidences
-    # InterVar: Benign PVS1=0 PS=[0, 0, 0, 0, 0] PM=[0, 0, 0, 0, 0, 0, 0] PP=[0, 0, 0, 0, 0, 0] BA1=1 BS=[1, 0, 0, 0, 0] BP=[0, 0, 0, 0, 0, 0, 0, 0]
+    # InterVar: Uncertain significance PVS1=0 PS=[0, 0, 0, 0, 0] PM=[0, 0, 0, 0, 0, 0, 0] PP=[0, 0, 0, 0, 0, 0] BA1=0 BS=[0, 0, 0, 0, 0] BP=[0, 0, 0, 0, 0, 0, 0, 0]
     if InterVar != nas_string:
         InterVar_info_list = InterVar.split("InterVar: ")[1].split("=")
         InterVar_cls = InterVar.split("InterVar: ")[1].split(" PVS1")[0]
