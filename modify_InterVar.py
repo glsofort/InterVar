@@ -328,7 +328,7 @@ def check_PM1(chr_pos_ref_alt):
 def check_PP3(REVEL, SpliceAI):
     REVEL = float(REVEL)
     SpliceAI = float(SpliceAI) if SpliceAI != nas_string else -1000
-    if REVEL >= 0.644 and REVEL < 0.773 and SpliceAI > 0.2:
+    if (REVEL >= 0.644 and REVEL < 0.773) or (SpliceAI > 0.2):
         return Strength["Supporting"]
     if REVEL >= 0.932:
         return Strength["Strong"]
