@@ -74,6 +74,7 @@ metrics_BEN = {
 
 # Evidences list:
 PVS1_standalone = "PVS1"
+PVS_list = ["PM3_VeryStrong", "PS2_VeryStrong"]
 PS_list = ["PS1", "PS2", "PS3", "PS4", "PVS1_Strong", "PP3_Strong"]
 PM_list = ["PM1", "PM2", "PM3", "PM4", "PM5", "PM6", "PVS1_Moderate", "PP3_Moderate"]
 PP_list = ["PP1", "PP2", "PP3", "PP4", "PP5", "PVS1_Supporting", "PM2_Supporting"]
@@ -89,7 +90,7 @@ def sum_of_list(list):
     return sum
 
 
-def classify(PVS1, PS, PM, PP, BA1, BS, BP):
+def classify(PVS1, PS, PM, PP, BA1, BS, BP, PVS):
     BPS = [
         "Pathogenic",
         "Likely pathogenic",
@@ -106,6 +107,7 @@ def classify(PVS1, PS, PM, PP, BA1, BS, BP):
     PP_sum = sum_of_list(PP)
     BS_sum = sum_of_list(BS)
     BP_sum = sum_of_list(BP)
+    PVS_sum = sum_of_list(PVS)
 
     # Excel logic:
     # IF(
@@ -136,6 +138,7 @@ def classify(PVS1, PS, PM, PP, BA1, BS, BP):
     try:
         if (
             PVS1 == 1
+            and PVS_sum == 0
             and PS_sum == 0
             and PM_sum == 0
             and PP_sum == 1
@@ -149,10 +152,17 @@ def classify(PVS1, PS, PM, PP, BA1, BS, BP):
     except KeyError:
         pass
 
-    if (PVS1 == 1 or PS_sum > 0 or PM_sum > 0 or PP_sum > 0) and (
+    # Updating PVS_sum with PVS1 into account
+    PVS_sum = PVS_sum + 1 if PVS1 == 1 else PVS_sum
+
+    if (PVS_sum > 0, PS_sum > 0 or PM_sum > 0 or PP_sum > 0) and (
         BA1 == 1 or BS_sum > 0 or BP_sum > 0
     ):
         return BPS[4]  # Uncertain significance x
+
+    # If include PVS1, total PVS class > 2 then it is pathogenic
+    if PVS_sum > 1:
+        return BPS[0]  # Pathogenic x
 
     if (
         # M5
@@ -177,16 +187,16 @@ def classify(PVS1, PS, PM, PP, BA1, BS, BP):
 
     if (
         # F7
-        (PVS1 == 1 and PS_sum > 0)
+        (PVS_sum == 1 and PS_sum > 0)
         or
         # F8
-        (PVS1 == 1 and PM_sum > 1)
+        (PVS_sum == 1 and PM_sum > 1)
         or
         # F9
-        (PVS1 == 1 and PM_sum > 0 and PP_sum > 0)
+        (PVS_sum == 1 and PM_sum > 0 and PP_sum > 0)
         or
         # F10
-        (PVS1 == 1 and PP_sum > 1)
+        (PVS_sum == 1 and PP_sum > 1)
         or
         # F11
         (PS_sum > 1)
@@ -204,7 +214,7 @@ def classify(PVS1, PS, PM, PP, BA1, BS, BP):
 
     if (
         # I6
-        (PVS1 == 1 and PM_sum == 1)
+        (PVS_sum == 1 and PM_sum == 1)
         or
         # I8
         (PS_sum == 1 and PM_sum < 3 and PM_sum >= 1)
@@ -533,8 +543,8 @@ def format_list(list):
     return ", ".join([str(e) for e in list])
 
 
-def get_InterVar_str(cls, PVS1, PS, PM, PP, BA1, BS, BP):
-    return f"InterVar: {cls} PVS1={PVS1} PS=[{format_list(PS)}] PM=[{format_list(PM)}] PP=[{format_list(PP)}] BA1={BA1} BS=[{format_list(BS)}] BP=[{format_list(BP)}]"
+def get_InterVar_str(cls, PVS1, PS, PM, PP, BA1, BS, BP, PVS):
+    return f"InterVar: {cls} PVS1={PVS1} PS=[{format_list(PS)}] PM=[{format_list(PM)}] PP=[{format_list(PP)}] BA1={BA1} BS=[{format_list(BS)}] BP=[{format_list(BP)}] PVS=[{format_list(PVS)}]"
 
 
 def get_evidences(intervar):
@@ -549,7 +559,8 @@ def get_evidences(intervar):
     PP = ast.literal_eval(info_list[4].split(" BA1")[0])
     BA1 = int(info_list[5].split(" BS")[0])
     BS = ast.literal_eval(info_list[6].split(" BP")[0])
-    BP = ast.literal_eval(info_list[7])
+    BP = ast.literal_eval(info_list[7].split(" PVS")[0])
+    PVS = ast.literal_eval(info_list[8]) if info_list[8] else [0, 0]
 
     evidences = []
 
@@ -597,6 +608,11 @@ def get_evidences(intervar):
         if BP[i] == 1:
             evidences.append(f"BP{i+1}")
 
+    for i in range(len(PVS)):
+        # Only account PVS at index 0 and 1
+        if PVS[i] == 1 and i < 2:
+            evidences.append(PVS_list[i])
+
     return ",".join(evidences)
 
 
@@ -640,6 +656,7 @@ def modify_intervar_info(row):
     restrict_list = []
 
     PVS1 = nas_string
+    PVS = nas_string
     PS = nas_string
     PM = nas_string
     PP = nas_string
@@ -648,7 +665,8 @@ def modify_intervar_info(row):
     BP = nas_string
 
     # Extract InterVar evidences
-    # InterVar: Uncertain significance PVS1=0 PS=[0, 0, 0, 0, 0] PM=[0, 0, 0, 0, 0, 0, 0] PP=[0, 0, 0, 0, 0, 0] BA1=0 BS=[0, 0, 0, 0, 0] BP=[0, 0, 0, 0, 0, 0, 0, 0]
+    # The original InterVar result does not have PVS, but in this comment below, we still add it.
+    # InterVar: Uncertain significance PVS1=0 PS=[0, 0, 0, 0, 0] PM=[0, 0, 0, 0, 0, 0, 0] PP=[0, 0, 0, 0, 0, 0] BA1=0 BS=[0, 0, 0, 0, 0] BP=[0, 0, 0, 0, 0, 0, 0, 0] PVS=[0, 0]
     if InterVar != nas_string:
         InterVar_info_list = InterVar.split("InterVar: ")[1].split("=")
         InterVar_cls = InterVar.split("InterVar: ")[1].split(" PVS1")[0]
@@ -661,6 +679,7 @@ def modify_intervar_info(row):
         BA1 = int(InterVar_info_list[5].split(" BS")[0])
         BS = ast.literal_eval(InterVar_info_list[6].split(" BP")[0])
         BP = ast.literal_eval(InterVar_info_list[7])
+        PVS = []
 
         # Append additional evidences in each group
         # Pathogenic
@@ -676,6 +695,10 @@ def modify_intervar_info(row):
         PP[5] = 0  # index: 5
         # PM2_supporting
         PP.append(0)  # index: 6
+        # PM3_VeryStrong
+        PVS.append(0)  # index: 0
+        # PS2_VeryStrong
+        PVS.append(0)  # index: 1
 
         # Benign
         # BP4_strong
@@ -726,12 +749,12 @@ def modify_intervar_info(row):
             BP[3] = 1
 
         # Classification
-        InterVar_cls_modified = classify(PVS1, PS, PM, PP, BA1, BS, BP)
+        InterVar_cls_modified = classify(PVS1, PS, PM, PP, BA1, BS, BP, PVS)
 
         # InterVar modification
-        # InterVar: Benign PVS1=0 PS=[0, 0, 0, 0, 0, 0] PM=[0, 0, 0, 0, 0, 0, 0, 0] PP=[0, 0, 0, 0, 0, 0, 0, 0] BA1=1 BS=[1, 0, 0, 0, 0] BP=[0, 0, 0, 0, 0, 0, 0, 0]
+        # InterVar: Benign PVS1=0 PS=[0, 0, 0, 0, 0, 0] PM=[0, 0, 0, 0, 0, 0, 0, 0] PP=[0, 0, 0, 0, 0, 0, 0, 0] BA1=1 BS=[1, 0, 0, 0, 0] BP=[0, 0, 0, 0, 0, 0, 0, 0] PVS=[0, 0]
         InterVar_modified = get_InterVar_str(
-            InterVar_cls_modified, PVS1, PS, PM, PP, BA1, BS, BP
+            InterVar_cls_modified, PVS1, PS, PM, PP, BA1, BS, BP, PVS
         )
 
         InterVar_evidences_modified = get_evidences(InterVar_modified)
@@ -741,9 +764,9 @@ def modify_intervar_info(row):
         # Restrict evidences
         PS, PM, PP, BP, restrict_list = restrict_evidences(row, PS, PM, PP, BP)
 
-        InterVar_cls_restricted = classify(PVS1, PS, PM, PP, BA1, BS, BP)
+        InterVar_cls_restricted = classify(PVS1, PS, PM, PP, BA1, BS, BP, PVS)
         InterVar_restricted = get_InterVar_str(
-            InterVar_cls_restricted, PVS1, PS, PM, PP, BA1, BS, BP
+            InterVar_cls_restricted, PVS1, PS, PM, PP, BA1, BS, BP, PVS
         )
         InterVar_evidences_restricted = get_evidences(InterVar_restricted)
         InterVar_priority_restricted = get_priority(InterVar_cls_restricted)

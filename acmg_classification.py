@@ -8,7 +8,7 @@ def sum_of_list(list):
 # 1, [0,0,0,0], [0,1,0,0,0,0], [0,0,0,0,0], 0, [0,0,0,0], [0,0,0,0,0,0,0]
 
 
-def classfyv2(PVS1, PS, PM, PP, BA1, BS, BP):
+def classfyv2(PVS1, PS, PM, PP, BA1, BS, BP, PVS):
     BPS = [
         "Pathogenic",
         "Likely pathogenic",
@@ -25,6 +25,7 @@ def classfyv2(PVS1, PS, PM, PP, BA1, BS, BP):
     PP_sum = sum_of_list(PP)
     BS_sum = sum_of_list(BS)
     BP_sum = sum_of_list(BP)
+    PVS_sum = sum_of_list(PVS)
 
     # Excel logic:
     # IF(
@@ -55,6 +56,7 @@ def classfyv2(PVS1, PS, PM, PP, BA1, BS, BP):
     try:
         if (
             PVS1 == 1
+            and PVS_sum == 0
             and PS_sum == 0
             and PM_sum == 0
             and PP_sum == 1
@@ -68,10 +70,17 @@ def classfyv2(PVS1, PS, PM, PP, BA1, BS, BP):
     except KeyError:
         pass
 
-    if (PVS1 == 1 or PS_sum > 0 or PM_sum > 0 or PP_sum > 0) and (
+    # Updating PVS_sum with PVS1 into account
+    PVS_sum = PVS_sum + 1 if PVS1 == 1 else PVS_sum
+
+    if (PVS_sum > 0, PS_sum > 0 or PM_sum > 0 or PP_sum > 0) and (
         BA1 == 1 or BS_sum > 0 or BP_sum > 0
     ):
         return BPS[4]  # Uncertain significance x
+
+    # If include PVS1, total PVS class > 2 then it is pathogenic
+    if PVS_sum > 1:
+        return BPS[0]  # Pathogenic x
 
     if (
         # M5
@@ -96,16 +105,16 @@ def classfyv2(PVS1, PS, PM, PP, BA1, BS, BP):
 
     if (
         # F7
-        (PVS1 == 1 and PS_sum > 0)
+        (PVS_sum == 1 and PS_sum > 0)
         or
         # F8
-        (PVS1 == 1 and PM_sum > 1)
+        (PVS_sum == 1 and PM_sum > 1)
         or
         # F9
-        (PVS1 == 1 and PM_sum > 0 and PP_sum > 0)
+        (PVS_sum == 1 and PM_sum > 0 and PP_sum > 0)
         or
         # F10
-        (PVS1 == 1 and PP_sum > 1)
+        (PVS_sum == 1 and PP_sum > 1)
         or
         # F11
         (PS_sum > 1)
@@ -123,7 +132,7 @@ def classfyv2(PVS1, PS, PM, PP, BA1, BS, BP):
 
     if (
         # I6
-        (PVS1 == 1 and PM_sum == 1)
+        (PVS_sum == 1 and PM_sum == 1)
         or
         # I8
         (PS_sum == 1 and PM_sum < 3 and PM_sum >= 1)
@@ -235,6 +244,9 @@ def test():
         "BP5": 0,
         "BP6": 0,
         "BP7": 0,
+        # PVS
+        "PM3_VeryStrong": 0,
+        "PS2_VeryStrong": 0,
     }
 
     # List of evidences
@@ -277,16 +289,12 @@ def test():
         evd["BP6"],
         evd["BP7"],
     ]
+    PVS = [
+        evd["PM3_VeryStrong"],
+        evd["PS2_VeryStrong"],
+    ]
 
-    cls = classfyv2(
-        PVS1,
-        PS,
-        PM,
-        PP,
-        BA1,
-        BS,
-        BP,
-    )
+    cls = classfyv2(PVS1, PS, PM, PP, BA1, BS, BP, PVS)
 
     print(f"Evidences: {','.join([i for i in evd if evd[i] == 1])}")
     print(f"ACMG: {cls}")
