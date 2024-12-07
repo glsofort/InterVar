@@ -560,7 +560,7 @@ def get_evidences(intervar):
     BA1 = int(info_list[5].split(" BS")[0])
     BS = ast.literal_eval(info_list[6].split(" BP")[0])
     BP = ast.literal_eval(info_list[7].split(" PVS")[0])
-    PVS = ast.literal_eval(info_list[8]) if info_list[8] else [0, 0]
+    PVS = ast.literal_eval(info_list[8]) if len(info_list) == 9 else [0, 0]
 
     evidences = []
 
