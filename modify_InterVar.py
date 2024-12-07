@@ -155,7 +155,7 @@ def classify(PVS1, PS, PM, PP, BA1, BS, BP, PVS):
     # Updating PVS_sum with PVS1 into account
     PVS_sum = PVS_sum + 1 if PVS1 == 1 else PVS_sum
 
-    if (PVS_sum > 0, PS_sum > 0 or PM_sum > 0 or PP_sum > 0) and (
+    if (PVS_sum > 0 or PS_sum > 0 or PM_sum > 0 or PP_sum > 0) and (
         BA1 == 1 or BS_sum > 0 or BP_sum > 0
     ):
         return BPS[4]  # Uncertain significance x

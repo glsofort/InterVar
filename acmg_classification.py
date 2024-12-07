@@ -73,7 +73,7 @@ def classfyv2(PVS1, PS, PM, PP, BA1, BS, BP, PVS):
     # Updating PVS_sum with PVS1 into account
     PVS_sum = PVS_sum + 1 if PVS1 == 1 else PVS_sum
 
-    if (PVS_sum > 0, PS_sum > 0 or PM_sum > 0 or PP_sum > 0) and (
+    if (PVS_sum > 0 or PS_sum > 0 or PM_sum > 0 or PP_sum > 0) and (
         BA1 == 1 or BS_sum > 0 or BP_sum > 0
     ):
         return BPS[4]  # Uncertain significance x
@@ -203,7 +203,7 @@ def classfyv2(PVS1, PS, PM, PP, BA1, BS, BP, PVS):
 def test():
     evd = {
         # PVS1
-        "PVS1": 1,
+        "PVS1": 0,
         # PS
         "PS1": 0,
         "PS2": 0,
@@ -229,9 +229,9 @@ def test():
         "PVS1_Supporting": 0,
         "PM2_Supporting": 0,
         # BA1
-        "BA1": 0,
+        "BA1": 1,
         # BS
-        "BS1": 0,
+        "BS1": 1,
         "BS2": 0,
         "BS3": 0,
         "BS4": 0,
