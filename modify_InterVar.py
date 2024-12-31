@@ -655,7 +655,7 @@ def modify_denovo_intervar_info(row):
         PP = ast.literal_eval(InterVar_info_list[4].split(" BA1")[0])
         BA1 = int(InterVar_info_list[5].split(" BS")[0])
         BS = ast.literal_eval(InterVar_info_list[6].split(" BP")[0])
-        BP = ast.literal_eval(InterVar_info_list[7].split(" BS")[0])
+        BP = ast.literal_eval(InterVar_info_list[7].split(" PVS")[0])
         if len(InterVar_info_list) >= 9:
             PVS = ast.literal_eval(InterVar_info_list[8])
         else:
