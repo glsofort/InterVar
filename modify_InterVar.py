@@ -627,6 +627,78 @@ def get_priority(cls):
     return CLS_Priority[cls]
 
 
+def modify_denovo_intervar_info(row):
+    """
+    Add PS2 evidence to every denovo variants
+    """
+    InterVar = row["InterVar"]
+
+    InterVar_str_modified = nas_string
+    InterVar_cls_modified = nas_string
+    InterVar_priority_modified = nas_string
+
+    PVS1 = nas_string
+    PVS = nas_string
+    PS = nas_string
+    PM = nas_string
+    PP = nas_string
+    BA1 = nas_string
+    BS = nas_string
+    BP = nas_string
+
+    if InterVar != nas_string:
+        InterVar_info_list = InterVar.split("InterVar: ")[1].split("=")
+
+        PVS1 = int(InterVar_info_list[1].split(" PS")[0])
+        PS = ast.literal_eval(InterVar_info_list[2].split(" PM")[0])
+        PM = ast.literal_eval(InterVar_info_list[3].split(" PP")[0])
+        PP = ast.literal_eval(InterVar_info_list[4].split(" BA1")[0])
+        BA1 = int(InterVar_info_list[5].split(" BS")[0])
+        BS = ast.literal_eval(InterVar_info_list[6].split(" BP")[0])
+        BP = ast.literal_eval(InterVar_info_list[7].split(" BS")[0])
+        if len(InterVar_info_list) >= 9:
+            PVS = ast.literal_eval(InterVar_info_list[8])
+        else:
+            PVS = [0 for _ in PVS_list]
+
+        # Add PS2 evidence
+        PS[1] = 1
+
+        InterVar_cls_modified = classify(PVS1, PS, PM, PP, BA1, BS, BP, PVS)
+        InterVar_str_modified = get_InterVar_str(
+            InterVar_cls_modified, PVS1, PS, PM, PP, BA1, BS, BP, PVS
+        )
+        InterVar_priority_modified = get_priority(InterVar_cls_modified)
+
+    else:
+        PVS1 = 0
+        PS = [0 for _ in PS_list]
+        PM = [0 for _ in PM_list]
+        PP = [0 for _ in PP_list]
+        BA1 = 0
+        BS = [0 for _ in BS_list]
+        BP = [0 for _ in BP_list]
+        PVS = [0 for _ in PVS_list]
+
+        # Add PS2 evidence
+        PS[1] = 1
+
+        InterVar_cls_modified = classify(PVS1, PS, PM, PP, BA1, BS, BP, PVS)
+        InterVar_str_modified = get_InterVar_str(
+            InterVar_cls_modified, PVS1, PS, PM, PP, BA1, BS, BP, PVS
+        )
+        InterVar_priority_modified = get_priority(InterVar_cls_modified)
+
+    result = {
+        "key": row["chr_pos_ref_alt_gene"],
+        "InterVar": InterVar_str_modified,
+        "ACMG_classification": InterVar_cls_modified,
+        "ACMG_priority": InterVar_priority_modified,
+    }
+
+    return result
+
+
 def modify_intervar_info(row):
     InterVar = row["InterVar"]
     strength = row["AutoPVS1_strength"]
@@ -954,6 +1026,24 @@ def run(input, output, clinvar):
     print(f"Whole process took: {time.time() - start_time} secs")
 
 
+def run_denovo(input, output):
+    start_time = time.time()
+
+    # Load input file
+    df = pd.read_csv(input, sep="\t")
+
+    # Apply the function to the DataFrame
+    parsed_data = df.apply(modify_denovo_intervar_info, axis=1)
+
+    # Convert the list of dictionaries to a DataFrame
+    parsed_df = pd.DataFrame(parsed_data.tolist())
+
+    # Export result
+    parsed_df.to_csv(output, sep="\t", index=False)
+
+    print(f"Whole process took: {time.time() - start_time} secs")
+
+
 def test():
     # awk -F"\t" '{if($3 != $4) { print $1"\t"$3"\t"$4 }}' out.tsv | less
 
@@ -982,7 +1072,6 @@ if __name__ == "__main__":
         dest="clinvar",
         type=str,
         help="Clinvar VCF file",
-        required=True,
     )
     parser.add_argument(
         "-o",
@@ -992,6 +1081,14 @@ if __name__ == "__main__":
         help="Output file with modified result",
         required=True,
     )
+    parser.add_argument(
+        "-d", "--denovo", dest="denovo", type=bool, help="Denovo analysis"
+    )
     args = parser.parse_args()
 
-    run(input=args.input, output=args.output, clinvar=args.clinvar)
+    if args.denovo:
+        print("Running denovo modification")
+        run_denovo(input=args.input, output=args.output)
+    else:
+        print("Running modification")
+        run(input=args.input, output=args.output, clinvar=args.clinvar)
