@@ -16,6 +16,7 @@ Strength = {
     "Strong": "Strong",
     "Moderate": "Moderate",
     "Supporting": "Supporting",
+    "Unmet": "Unmet",
 }
 CLS = {
     "PAT": "Pathogenic",
@@ -305,6 +306,11 @@ def modify_evidences_based_on_autoPVS1(PVS1, PS, PM, PP, AutoPVS1_strength):
     if AutoPVS1_strength == Strength["Supporting"]:
         PVS1 = 0
         PP[5] = 1
+        adjusted = 1
+
+    # Remove PVS1 if AutoPVS1 is Unmet or there is no AutoPVS1 result
+    if AutoPVS1_strength == Strength["Unmet"] or AutoPVS1_strength == nas_string:
+        PVS1 = 0
         adjusted = 1
 
     return PVS1, PS, PM, PP, adjusted
