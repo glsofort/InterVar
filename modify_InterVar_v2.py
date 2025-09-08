@@ -1350,6 +1350,9 @@ def load_clingen_mapping(clingen_file):
         processed_record = record.copy()
 
         # Map classification
+        if "classification" not in record["clinical"] or "ID" not in record["clinical"]:
+            continue
+
         original_classification = record["clinical"]["classification"]
         processed_record["clinical"]["classification"] = classification_mapping.get(
             original_classification, original_classification
@@ -1364,13 +1367,8 @@ def load_clingen_mapping(clingen_file):
 
         # Add evidences field
         processed_record["evidences"] = evidences
-        clingen_id = (
-            processed_record["clinical"]["ID"]
-            if "ID" in processed_record["clinical"]
-            else nas_string
-        )
-        if clingen_id != nas_string:
-            mapping[clingen_id] = processed_record
+        clingen_id = processed_record["clinical"]["ID"]
+        mapping[clingen_id] = processed_record
 
     return mapping
 
