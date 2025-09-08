@@ -376,7 +376,7 @@ def get_intervar_data(intervar):
 
 def modify_evidences_based_on_autoPVS1(current_pvs1, autopvs1_strength):
     strength_mapping = {
-        Strength["VeryStrong"]: Strength["VeryStrong"],
+        Strength["VeryStrong"]: Strength["Normal"],
         Strength["Strong"]: Strength["Strong"],
         Strength["Moderate"]: Strength["Moderate"],
         Strength["Supporting"]: Strength["Supporting"],
