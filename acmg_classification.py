@@ -210,9 +210,9 @@ def test():
         "PS3": 0,
         "PS4": 0,
         "PVS1_Strong": 0,
-        "PP3_Strong": 0,
+        "PP3_Strong": 1,
         # PM
-        "PM1": 0,
+        "PM1": 1,
         "PM2": 0,
         "PM3": 0,
         "PM4": 0,
@@ -227,11 +227,11 @@ def test():
         "PP4": 0,
         "PP5": 0,
         "PVS1_Supporting": 0,
-        "PM2_Supporting": 0,
+        "PM2_Supporting": 1,
         # BA1
-        "BA1": 1,
+        "BA1": 0,
         # BS
-        "BS1": 1,
+        "BS1": 0,
         "BS2": 0,
         "BS3": 0,
         "BS4": 0,
