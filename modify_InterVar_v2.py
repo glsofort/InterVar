@@ -1364,8 +1364,13 @@ def load_clingen_mapping(clingen_file):
 
         # Add evidences field
         processed_record["evidences"] = evidences
-        clingen_id = record["clinical"]["ID"]
-        mapping[clingen_id] = record
+        clingen_id = (
+            processed_record["clinical"]["ID"]
+            if "ID" in processed_record["clinical"]
+            else nas_string
+        )
+        if clingen_id != nas_string:
+            mapping[clingen_id] = processed_record
 
     return mapping
 
