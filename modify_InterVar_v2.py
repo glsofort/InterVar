@@ -8,6 +8,8 @@ import re
 from cyvcf2 import VCF
 import time
 import subprocess
+import gzip
+import json
 
 Strength = {
     "Normal": "Normal",
@@ -36,6 +38,7 @@ R_CLS = {
 
 # Global variables
 clinvar_vcf = None
+clingen_mapping = None
 
 nas_string = "."
 
@@ -956,7 +959,7 @@ def modify_denovo_intervar_info(row):
     result = {
         "key": row["chr_pos_ref_alt_gene"],
         "InterVar": InterVar_str_modified,
-        "ACNG_evidences": ACMG_evidences,
+        "ACMG_evidences": ACMG_evidences,
         "ACMG_classification": ACMG_cls,
         "ACMG_priority": ACMG_priority,
     }
@@ -965,11 +968,15 @@ def modify_denovo_intervar_info(row):
 
 
 def modify_intervar_info(row):
+    global clingen_mapping
+
+    # Original InterVar processing if no ClinGen data
     InterVar = row["InterVar"]
     strength = row["AutoPVS1_strength"]
     REVEL = row["REVEL_score"]
     SpliceAI = row["SpliceAI_max_score"]
     key = row["chr_pos_ref_alt"]
+    clingen_id = row["ClinGen_ID"]
 
     AutoPVS1_adjusted = 0
     PP3_modified = 0
@@ -1013,15 +1020,27 @@ def modify_intervar_info(row):
     ACMG_modified_priority = get_priority(ACMG_modified_cls)
 
     ##### End Modify intervar evidences #####
+    clingen_flag = False
+    if clingen_id != nas_string and clingen_mapping:
+        # Get ClinGen record by ID using mapping for O(1) lookup
+        clingen_record = clingen_mapping.get(clingen_id)
+
+        if clingen_record:
+            # Use ClinGen classification and evidences directly
+            clingen_flag = True
+            ACMG_final_evidences = parse_evidences(clingen_record["evidences"])
+            ACMG_final_cls = clingen_record["clinical"]["classification"]
+            ACMG_final_priority = get_priority(ACMG_final_cls)
 
     ##### Start restrict evidences #####
-    ACMG_final_evidences = ACMG_modified_evidences.copy()
+    if not clingen_flag:
+        ACMG_final_evidences = ACMG_modified_evidences.copy()
 
-    ACMG_final_evidences, restrict_list = restrict_evidences(
-        row, ACMG_modified_evidences
-    )
-    ACMG_final_cls = classify(ACMG_final_evidences)
-    ACMG_final_priority = get_priority(ACMG_final_cls)
+        ACMG_final_evidences, restrict_list = restrict_evidences(
+            row, ACMG_modified_evidences
+        )
+        ACMG_final_cls = classify(ACMG_final_evidences)
+        ACMG_final_priority = get_priority(ACMG_final_cls)
     ##### End restrict evidences #####
 
     result = {
@@ -1303,8 +1322,56 @@ def run_denovo(input, output):
     print(f"Whole process took: {time.time() - start_time} secs")
 
 
-def run(input, output, clinvar):
-    global clinvar_vcf
+def load_clingen_mapping(clingen_file):
+    """
+    Load and process ClinGen classification data from gzipped JSON file.
+
+    Args:
+        clingen_file: Path to the gzipped JSON file
+
+    Returns:
+        List of processed ClinGen records with evidences field added
+    """
+    classification_mapping = {
+        "Benign": CLS["BEN"],
+        "Likely Benign": CLS["LB"],
+        "Likely Pathogenic": CLS["LP"],
+        "Pathogenic": CLS["PAT"],
+        "Uncertain Significance": CLS["VUS"],
+    }
+
+    mapping = {}
+
+    with gzip.open(clingen_file, "rt", encoding="utf-8") as f:
+        data = json.load(f)
+
+    for record in data:
+        # Create new record with processed fields
+        processed_record = record.copy()
+
+        # Map classification
+        original_classification = record["clinical"]["classification"]
+        processed_record["clinical"]["classification"] = classification_mapping.get(
+            original_classification, original_classification
+        )
+
+        # Extract evidence codes from met_criteria
+        evidences = []
+        if "panel" in record and "met_criteria" in record["panel"]:
+            for criteria in record["panel"]["met_criteria"]:
+                if "code" in criteria:
+                    evidences.append(criteria["code"])
+
+        # Add evidences field
+        processed_record["evidences"] = evidences
+        clingen_id = record["clinical"]["ID"]
+        mapping[clingen_id] = record
+
+    return mapping
+
+
+def run(input, output, clinvar, clingen=None):
+    global clinvar_vcf, clingen_mapping
 
     start_time = time.time()
 
@@ -1313,6 +1380,12 @@ def run(input, output, clinvar):
 
     # Load Clinvar VCF
     clinvar_vcf = VCF(clinvar)
+
+    # Load ClinGen data if provided
+    if clingen:
+        print("Loading ClinGen classification data...")
+        clingen_mapping = load_clingen_mapping(clingen)
+        print(f"Loaded {len(clingen_mapping.keys())} ClinGen records")
 
     # Load input file
     df = pd.read_csv(input, sep="\t")
@@ -1359,6 +1432,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "-d", "--denovo", dest="denovo", type=bool, help="Denovo analysis"
     )
+    parser.add_argument(
+        "-g",
+        "--clingen",
+        dest="clingen",
+        type=str,
+        help="ClinGen classification gzipped JSON file",
+    )
     args = parser.parse_args()
 
     if args.denovo:
@@ -1366,4 +1446,9 @@ if __name__ == "__main__":
         run_denovo(input=args.input, output=args.output)
     else:
         print("Running modification")
-        run(input=args.input, output=args.output, clinvar=args.clinvar)
+        run(
+            input=args.input,
+            output=args.output,
+            clinvar=args.clinvar,
+            clingen=args.clingen,
+        )

@@ -1,0 +1,36 @@
+[
+  {
+    "clinical": {
+      "ID": "1",
+      "classification": "Pathogenic",
+      "variant": "NM_000152.5(GAA):c.877G>A (p.Gly293Arg)"
+    },
+    "file": "clinical_classification_0000332d-036c-4002-aea8-7c869781a384.html",
+    "panel": {
+      "evidence_summary": "The NM_000152.5:c.877G>A variant in GAA is a missense variant that is predicted to result in the substitution of glycine by arginine at amino acid 293 (p.Gly293Arg). Patients with a diagnosis of Pompe disease reported with this variant include five individuals with documented laboratory values showing deficient GAA activity meeting the specifications of the ClinGen LSD VCEP (PMIDs: 23566438, 24590251, 26497565), one of whom also has features reported that are consistent with infantile onset Pompe disease (PMID: 31510962) and additional patients reported to be on enzyme replacement therapy but without documentation of residual GAA activity (PMID: 18607768, 21605996) (PP4_Moderate). At least 6 patients are compound heterozygous, phase unconfirmed, for the variant and another variant in GAA that has been classified as pathogenic by the ClinGen LSD VCEP including c.-32-13T>G (PMIDs: 18607768, 21605996, 23566438, 24590251, 25455803, 29181627, 31710733), c.2481+102_2646+31del (PMID: 18429042) and c.716del (p.Leu239fsTer28) (PMID: 14695532), and at least two individuals are homozygous for the variant (PMIDs: 31510962, 26497565) (2 x 0.5 points) (PM3_Strong). In addition, two patients are compound heterozygous for the variant and either c.719C>T (p.Phe240Ser; note that reference sequence has a T at position 719) (PMID: 25455803) or c.710C>T (p.Ala237Val) (PMIDs: 15668445, 17573812, 17643989. The allelic data from these patients will be used in the classification of p.Phe240Ser and is not included here to avoid circular logic. The highest population minor allele frequency in gnomAD v2.1.1. is 0.00006 (2/35062 alleles) in the Latino / Admixed American population, which is lower than the ClinGen LSD VCEP threshold (<0.001) for PM2_Supporting, meeting this criterion (PM2_Supporting). When expressed in COS cells, this variant results in <2% residual GAA activity in medium and cells (PMIDs 14695532, 19862843). No GAA protein was observed on Western blot of COS cells expressing the variant (PMID 14695532) (PS3_Moderate). The computational predictor REVEL gives a score of 0.931 which is above the threshold of 0.7, evidence that correlates with impact to GAA function, and SpliceAI predicts the creation of a cryptic splice site 2 nucleotides downstream from the variant (PP3). There is a ClinVar entry for this variant (Variation ID: 4036; 2 star review status) with 6 submitters classifying the variant as pathogenic. In summary, this variant meets the criteria to be classified as pathogenic for Pompe disease. GAA-specific ACMG/AMP criteria applied, as specified by the ClinGen LSD VCEP (Specification Version 2.0): PM3_Strong, PS3_Moderate, PP4_Moderate, PP3, PM2_Supporting. \n)Classification approved by the ClinGen LSD VCEP on Nov. 2, 2022)",
+      "met_criteria": [
+        {
+          "code": "PM3_Strong",
+          "summary": "At least 6 patients are compound heterozygous, phase unconfirmed, for the variant and another variant in GAA that has been classified as pathogenic by the ClinGen LSD VCEP including c.-32-13T>G (PMID: 18607768, 21605996, 23566438, 24590251, 25455803, 29181627, 31710733; a maximum of two patients can be counted) (max 2 x 0.5 points), c.2481+102_2646+31del (PMID: 18429042) (0.5 points), and c.716del (p.Leu239fsTer28) (PMID: 14695532) (0.5 points), and at least two individuals are homozygous for the variant (PMIDs: 31510962, 26497565) (2 x 0.5 points). Total 3 points (PM3_Strong). In addition, two patients are compound heterozygous for the variant and either c.719C>T (p.Phe240Ser; note that reference sequence has a T at position 719) (PMID: 25455803) or c.710C>T (p.Ala237Val) (PMIDs: 15668445, 17573812, 17643989. The allelic data from these patients will be used in the classification of p.Phe240Ser and is not included here to avoid circular logic."
+        },
+        {
+          "code": "PP3",
+          "summary": "The computational predictor REVEL gives a score of 0.931 which is above the threshold of 0.7, evidence that correlates with impact to GAA function (PP3). In addition, Splice AI predicts the creation of a splice acceptor 2 nucleotides downstream from the variant (score 0.75). VarSEAK predicts no impact on splicing.\n"
+        },
+        {
+          "code": "PP4_Moderate",
+          "summary": "Patients reported with this variant include five patients with documented laboratory values showing deficient GAA activity meeting the specifications of the ClinGen LSD VCEP (PMIDs: 23566438, 24590251, 26497565) (2 points each), one of whom also has features reported that are consistent with infantile onset Pompe disease (PMID: 31510962) (1 point) and additional patients reported to be on enzyme replacement therapy but without documentation of residual GAA activity (PMID: 18607768, 21605996) (1 point). (PP4_Moderate). The total number of patients reported is difficult to assess because multiple patients have the same genotype (c.877G>A (p.Gly293Arg) / c.-32-13T>G) and it is not always possible to determine if a patient has been reported in more than one publication."
+        },
+        {
+          "code": "PM2_Supporting",
+          "summary": "The highest population minor allele frequency in gnomAD v2.1.1. is 0.00006 (2/35062 alleles) in the Latino / Admixed American population, which is lower than the ClinGen LSD VCEP threshold (<0.001) for PM2_Supporting, meeting this criterion (PM2_Supporting)."
+        },
+        {
+          "code": "PS3_Moderate",
+          "summary": "When expressed in COS cells, this variant results in <2% residual GAA activity in medium and cells (PMIDs 14695532, 19862843). No GAA protein was observed on Western blot of COS cells expressing the variant (PMID 14695532)."
+        }
+      ],
+      "panel_name": "Lysosomal Diseases VCEP"
+    }
+  }
+]
