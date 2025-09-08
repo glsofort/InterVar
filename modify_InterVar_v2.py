@@ -1033,14 +1033,18 @@ def modify_intervar_info(row):
             ACMG_final_priority = get_priority(ACMG_final_cls)
 
     ##### Start restrict evidences #####
-    if not clingen_flag:
-        ACMG_final_evidences = ACMG_modified_evidences.copy()
+    ACMG_restricted_evidences = ACMG_modified_evidences.copy()
 
-        ACMG_final_evidences, restrict_list = restrict_evidences(
-            row, ACMG_modified_evidences
-        )
-        ACMG_final_cls = classify(ACMG_final_evidences)
-        ACMG_final_priority = get_priority(ACMG_final_cls)
+    ACMG_restricted_evidences, restrict_list = restrict_evidences(
+        row, ACMG_modified_evidences
+    )
+    ACMG_restricted_cls = classify(ACMG_restricted_evidences)
+    ACMG_restricted_priority = get_priority(ACMG_restricted_cls)
+
+    if not clingen_flag:
+        ACMG_final_evidences = ACMG_restricted_evidences
+        ACMG_final_cls = ACMG_restricted_cls
+        ACMG_final_priority = ACMG_restricted_priority
     ##### End restrict evidences #####
 
     result = {
