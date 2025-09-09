@@ -1574,7 +1574,7 @@ if __name__ == "__main__":
         help="ClinGen classification gzipped JSON file",
     )
     parser.add_argument(
-        "-d",
+        "-e",
         "--clinvar-id-citated",
         dest="clinvar_id_citated",
         type=str,
