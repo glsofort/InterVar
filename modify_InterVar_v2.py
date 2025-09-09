@@ -1069,9 +1069,6 @@ def modify_intervar_info(row):
     else:
         ACMG_modified_evidences["BP4"] = BP4_strength
 
-    ACMG_modified_cls = classify(ACMG_modified_evidences)
-    ACMG_modified_priority = get_priority(ACMG_modified_cls)
-
     # Check PS4
     if check_PS4(clinvar_variant_id, clinvar_clnsig_final, inheritance):
         ACMG_modified_evidences["PS4"] = Strength["Normal"]
@@ -1081,6 +1078,9 @@ def modify_intervar_info(row):
     if check_PM3(clinvar_variant_id, clinvar_clnsig_final, inheritance):
         ACMG_modified_evidences["PM3"] = Strength["Normal"]
         PM3_modified = 1
+
+    ACMG_modified_cls = classify(ACMG_modified_evidences)
+    ACMG_modified_priority = get_priority(ACMG_modified_cls)
 
     ##### End Modify intervar evidences #####
     clingen_flag = False
