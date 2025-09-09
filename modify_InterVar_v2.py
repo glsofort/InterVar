@@ -36,9 +36,19 @@ R_CLS = {
     "Benign": "BEN",
 }
 
+CLINVAR = {
+    "PAT": "PAT",
+    "LP": "LP",
+    "VUS": "VUS",
+    "LB": "LB",
+    "BEN": "BEN",
+    "CONF": "CONF",
+}
+
 # Global variables
 clinvar_vcf = None
 clingen_mapping = None
+clinvar_cited_ids = None
 
 nas_string = "."
 
@@ -440,6 +450,44 @@ def check_BP4(REVEL):
     if REVEL > 0.016 and REVEL <= 0.290:
         return Strength["Supporting"]
     return Strength["Unmet"]
+
+
+def check_PS4(clinvar_variant_id, clinvar_clnsig_final, inheritance):
+    # Check citation
+    has_citation = (
+        clinvar_variant_id
+        and clinvar_variant_id != nas_string
+        and (str(clinvar_variant_id) in clinvar_cited_ids)
+    )
+
+    # Check clinvar P/LP
+    has_plp_clinvar = (clinvar_clnsig_final in [CLINVAR["PAT"], CLINVAR["LP"]]) or (
+        CLINVAR["PAT"] in clinvar_clnsig_final or CLINVAR["LP"] in clinvar_clnsig_final
+    )
+
+    has_ad_inheritance = "autosomal dominant" in inheritance
+
+    # Check if the variant ID is in the citation set
+    return has_citation and has_plp_clinvar and has_ad_inheritance
+
+
+def check_PM3(clinvar_variant_id, clinvar_clnsig_final, inheritance):
+    # Check citation
+    has_citation = (
+        clinvar_variant_id
+        and clinvar_variant_id != nas_string
+        and (str(clinvar_variant_id) in clinvar_cited_ids)
+    )
+
+    # Check clinvar P/LP
+    has_plp_clinvar = (clinvar_clnsig_final in [CLINVAR["PAT"], CLINVAR["LP"]]) or (
+        CLINVAR["PAT"] in clinvar_clnsig_final or CLINVAR["LP"] in clinvar_clnsig_final
+    )
+
+    has_ar_inheritance = "autosomal recessive" in inheritance
+
+    # Check if the variant ID is in the citation set
+    return has_citation and has_plp_clinvar and has_ar_inheritance
 
 
 def get_evidences_by_strength(evidences, strength, type="pathogenic"):
@@ -977,8 +1025,13 @@ def modify_intervar_info(row):
     SpliceAI = row["SpliceAI_max_score"]
     key = row["chr_pos_ref_alt"]
     clingen_id = row["ClinGen_ID"]
+    inheritance = row["inheritance"]
+    clinvar_clnsig_final = row["CLINVAR_clnsig_final"]
+    clinvar_variant_id = row["CLINVAR_variant_id"]
 
     AutoPVS1_adjusted = 0
+    PS4_modified = 0
+    PM3_modified = 0
     PP3_modified = 0
     BP4_modified = 0
 
@@ -1018,6 +1071,16 @@ def modify_intervar_info(row):
 
     ACMG_modified_cls = classify(ACMG_modified_evidences)
     ACMG_modified_priority = get_priority(ACMG_modified_cls)
+
+    # Check PS4
+    if check_PS4(clinvar_variant_id, clinvar_clnsig_final, inheritance):
+        ACMG_modified_evidences["PS4"] = Strength["Normal"]
+        PS4_modified = 1
+
+    # Check PM3
+    if check_PM3(clinvar_variant_id, clinvar_clnsig_final, inheritance):
+        ACMG_modified_evidences["PM3"] = Strength["Normal"]
+        PM3_modified = 1
 
     ##### End Modify intervar evidences #####
     clingen_flag = False
@@ -1060,6 +1123,8 @@ def modify_intervar_info(row):
         "ACMG_modified_priority": ACMG_modified_priority,
         "PP3_modified": PP3_modified,
         "BP4_modified": BP4_modified,
+        "PS4_modified": PS4_modified,
+        "PM3_modified": PM3_modified,
         # Modified & Restricted InterVar
         "ACMG_final_cls": ACMG_final_cls,
         "ACMG_final_evidences": evidences_to_str(ACMG_final_evidences),
@@ -1085,8 +1150,12 @@ def write_logs(results):
 
     pp3_modified_count = 0
     bp4_modified_count = 0
+    ps4_modified_count = 0
+    pm3_modified_count = 0
     pp3_records = []
     bp4_records = []
+    ps4_records = []
+    pm3_records = []
     restricted_records = []
 
     cls_counts = {
@@ -1105,7 +1174,7 @@ def write_logs(results):
         intervar_to_modified_matrix[intervar_cls][modified_cls] += 1
         intervar_to_final_matrix[intervar_cls][final_cls] += 1
 
-        # Count PP3 and BP4 modifications
+        # Count PP3, BP4, PS4, and PM3 modifications
         if result["PP3_modified"] == 1:
             pp3_modified_count += 1
             pp3_records.append(result)
@@ -1113,6 +1182,14 @@ def write_logs(results):
         if result["BP4_modified"] == 1:
             bp4_modified_count += 1
             bp4_records.append(result)
+
+        if result["PS4_modified"] == 1:
+            ps4_modified_count += 1
+            ps4_records.append(result)
+
+        if result["PM3_modified"] == 1:
+            pm3_modified_count += 1
+            pm3_records.append(result)
 
         # Process restricted evidences
         final_evidences = (
@@ -1268,6 +1345,26 @@ def write_logs(results):
                 f"{record['key']}\t{record['InterVar_cls']}\t{record['ACMG_modified_cls']}\t{record['ACMG_final_cls']}\n"
             )
 
+    # Write PS4 log
+    with open("PS4.log", "w") as f:
+        f.write(f"PS4 Modified Records: {ps4_modified_count} total\n")
+        f.write("=" * 50 + "\n")
+        f.write("key\tInterVar_cls\tACMG_modified_cls\tACMG_final_cls\n")
+        for record in ps4_records:
+            f.write(
+                f"{record['key']}\t{record['InterVar_cls']}\t{record['ACMG_modified_cls']}\t{record['ACMG_final_cls']}\n"
+            )
+
+    # Write PM3 log
+    with open("PM3.log", "w") as f:
+        f.write(f"PM3 Modified Records: {pm3_modified_count} total\n")
+        f.write("=" * 50 + "\n")
+        f.write("key\tInterVar_cls\tACMG_modified_cls\tACMG_final_cls\n")
+        for record in pm3_records:
+            f.write(
+                f"{record['key']}\t{record['InterVar_cls']}\t{record['ACMG_modified_cls']}\t{record['ACMG_final_cls']}\n"
+            )
+
     # Write restricted log
     with open("restricted.log", "w") as f:
         # Calculate total records with restrictions applied
@@ -1304,6 +1401,8 @@ def write_logs(results):
     print(f"- Classification matrices: cls_matrix.log")
     print(f"- PP3 modifications: PP3.log ({pp3_modified_count} records)")
     print(f"- BP4 modifications: BP4.log ({bp4_modified_count} records)")
+    print(f"- PS4 modifications: PS4.log ({ps4_modified_count} records)")
+    print(f"- PM3 modifications: PM3.log ({pm3_modified_count} records)")
     print(f"- Restricted evidences: restricted.log")
     print(f"- Total classification counts: cls_total.log")
 
@@ -1377,8 +1476,30 @@ def load_clingen_mapping(clingen_file):
     return mapping
 
 
-def run(input, output, clinvar, clingen=None):
-    global clinvar_vcf, clingen_mapping
+def load_clinvar_cited_ids(filename):
+    """
+    Load ClinVar variation IDs that have citations from a text file.
+
+    Args:
+        filename: Path to the text file containing VariationIDs
+
+    Returns:
+        set: Set of variation IDs that have citations
+    """
+    tmp_set = set()
+    try:
+        with open(filename, "r") as f:
+            for line in f:
+                line = line.strip()
+                if line and line != "VariationID":
+                    tmp_set.add(line)
+    except FileNotFoundError:
+        print(f"Warning: ClinVar cited IDs file not found: {filename}")
+    return tmp_set
+
+
+def run(input, output, clinvar, clingen=None, clinvar_id_citated=None):
+    global clinvar_vcf, clingen_mapping, clinvar_cited_ids
 
     start_time = time.time()
 
@@ -1387,6 +1508,12 @@ def run(input, output, clinvar, clingen=None):
 
     # Load Clinvar VCF
     clinvar_vcf = VCF(clinvar)
+
+    # Load ClinVar cited IDs for PS4 evidence
+    if clinvar_id_citated:
+        print("Loading ClinVar cited IDs...")
+        clinvar_cited_ids = load_clinvar_cited_ids(clinvar_id_citated)
+        print(f"Loaded {len(clinvar_cited_ids)} ClinVar cited IDs")
 
     # Load ClinGen data if provided
     if clingen:
@@ -1446,6 +1573,13 @@ if __name__ == "__main__":
         type=str,
         help="ClinGen classification gzipped JSON file",
     )
+    parser.add_argument(
+        "-d",
+        "--clinvar-id-citated",
+        dest="clinvar_id_citated",
+        type=str,
+        help="Clinvar ID citated",
+    )
     args = parser.parse_args()
 
     if args.denovo:
@@ -1458,4 +1592,5 @@ if __name__ == "__main__":
             output=args.output,
             clinvar=args.clinvar,
             clingen=args.clingen,
+            clinvar_id_citated=args.clinvar_id_citated,
         )
