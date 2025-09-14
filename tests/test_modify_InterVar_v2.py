@@ -1,5 +1,6 @@
 import unittest
 import modify_InterVar_v2 as m
+import acmg_classification_v2 as c
 
 
 class TestingFunc:
@@ -178,6 +179,8 @@ class TestRestrictionFunc(unittest.TestCase):
     def test_restrict_evidences(self):
         pass
 
+
+class TestModifyInterVar(unittest.TestCase):
     def test_classification(self):
         cases = [
             {
@@ -315,9 +318,139 @@ class TestRestrictionFunc(unittest.TestCase):
             )
 
 
-class TestModifyInterVar(unittest.TestCase):
-    def test(self):
-        pass
+class TestExternal(unittest.TestCase):
+    def test_external_classification(self):
+        cases = [
+            {
+                "id": 1,
+                "evidences": ["PS1", "PS2", "PM2", "PP3"],
+                "result_cls": m.CLS["PAT"],
+            },
+            {
+                "id": 2,
+                "evidences": ["PVS1", "PM2_Supporting"],
+                "result_cls": m.CLS["LP"],
+            },
+            {
+                "id": 3,
+                "evidences": ["PVS1", "PM2_Supporting", "PS1"],
+                "result_cls": m.CLS["PAT"],
+            },
+            {
+                "id": 4,
+                "evidences": ["PVS1", "PM1_Supporting"],
+                "result_cls": m.CLS["VUS"],
+            },
+            {
+                "id": 5,
+                "evidences": ["PVS1", "PS1_Supporting"],
+                "result_cls": m.CLS["VUS"],
+            },
+            {
+                "id": 6,
+                "evidences": ["PVS1", "PS1_Moderate"],
+                "result_cls": m.CLS["LP"],
+            },
+            {
+                "id": 7,
+                "evidences": ["PVS1_Strong", "PS1_Moderate"],
+                "result_cls": m.CLS["LP"],
+            },
+            {
+                "id": 8,
+                "evidences": ["PVS1_Strong", "PM2_Supporting"],
+                "result_cls": m.CLS["VUS"],
+            },
+            {
+                "id": 9,
+                "evidences": ["PVS1_Strong", "PM1_Strong"],
+                "result_cls": m.CLS["PAT"],
+            },
+            {
+                "id": 10,
+                "evidences": ["PVS1_Strong", "PM2_VeryStrong"],
+                "result_cls": m.CLS["PAT"],
+            },
+            {
+                "id": 10,
+                "evidences": ["PVS1_Supporting", "PM2_VeryStrong"],
+                "result_cls": m.CLS["VUS"],
+            },
+            {
+                "id": 11,
+                "evidences": ["PVS1_Moderate", "PM2_VeryStrong"],
+                "result_cls": m.CLS["LP"],
+            },
+            {
+                "id": 12,
+                "evidences": ["PVS1_Moderate", "PM2_VeryStrong", "BA1"],
+                "result_cls": m.CLS["VUS"],
+            },
+            {
+                "id": 13,
+                "evidences": ["BA1"],
+                "result_cls": m.CLS["BEN"],
+            },
+            {
+                "id": 14,
+                "evidences": ["BA1", "BS1"],
+                "result_cls": m.CLS["BEN"],
+            },
+            {
+                "id": 15,
+                "evidences": ["BA1", "BS1_Supporting"],
+                "result_cls": m.CLS["BEN"],
+            },
+            {
+                "id": 16,
+                "evidences": ["BS1_Supporting"],
+                "result_cls": m.CLS["VUS"],
+            },
+            {
+                "id": 17,
+                "evidences": ["BS1"],
+                "result_cls": m.CLS["LB"],
+            },
+            {
+                "id": 18,
+                "evidences": ["BS1", "BP1", "BP2"],
+                "result_cls": m.CLS["LB"],
+            },
+            {
+                "id": 19,
+                "evidences": ["BS1", "BP1", "BP2", "BP3"],
+                "result_cls": m.CLS["BEN"],
+            },
+            {
+                "id": 20,
+                "evidences": ["BS1", "BP7"],
+                "result_cls": m.CLS["LB"],
+            },
+            {
+                "id": 21,
+                "evidences": ["BS2", "BP1", "BP2"],
+                "result_cls": m.CLS["LB"],
+            },
+            {
+                "id": 22,
+                "evidences": ["BS2", "BP1", "BP7"],
+                "result_cls": m.CLS["BEN"],
+            },
+        ]
+
+        for case in cases:
+            # Test
+            result_cls = c.classify(case["evidences"])
+
+            if result_cls != case["result_cls"]:
+                print(case["evidences"])
+
+            # Assertions
+            self.assertEqual(
+                result_cls,
+                case["result_cls"],
+                f"Test ID: {case['id']}. Evidence dictionaries must match exactly.",
+            )
 
 
 if __name__ == "__main__":

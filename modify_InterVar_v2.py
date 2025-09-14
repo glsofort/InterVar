@@ -4,12 +4,15 @@ import os
 import ast
 import sys
 import re
-
-from cyvcf2 import VCF
 import time
 import subprocess
 import gzip
 import json
+
+try:
+    from cyvcf2 import VCF
+except ImportError:
+    print("WARNING: cyvcf2 is not installed. Please install it using pip.")
 
 Strength = {
     "Normal": "Normal",
@@ -452,7 +455,7 @@ def check_BP4(REVEL):
     return Strength["Unmet"]
 
 
-def check_PS4(clinvar_variant_id, clinvar_clnsig_final, inheritance):
+def check_PS4(clinvar_variant_id, clinvar_clnsig_final, inheritance_set):
     # Check citation
     has_citation = (
         clinvar_variant_id
@@ -465,13 +468,20 @@ def check_PS4(clinvar_variant_id, clinvar_clnsig_final, inheritance):
         CLINVAR["PAT"] in clinvar_clnsig_final or CLINVAR["LP"] in clinvar_clnsig_final
     )
 
-    has_ad_inheritance = "autosomal dominant" in inheritance
+    # Check inheritance that is autosomal dominant or x-linked or x-linked dominant
+    has_inheritance_passed = False
+    for item in inheritance_set:
+        if ("autosomal dominant" in item and item != "pseudoautosomal dominant") or (
+            "x-linked" in item and "x-linked dominant" not in item
+        ):
+            has_inheritance_passed = True
+            break
 
     # Check if the variant ID is in the citation set
-    return has_citation and has_plp_clinvar and has_ad_inheritance
+    return has_citation and has_plp_clinvar and has_inheritance_passed
 
 
-def check_PM3(clinvar_variant_id, clinvar_clnsig_final, inheritance):
+def check_PM3(clinvar_variant_id, clinvar_clnsig_final, inheritance_set):
     # Check citation
     has_citation = (
         clinvar_variant_id
@@ -484,10 +494,15 @@ def check_PM3(clinvar_variant_id, clinvar_clnsig_final, inheritance):
         CLINVAR["PAT"] in clinvar_clnsig_final or CLINVAR["LP"] in clinvar_clnsig_final
     )
 
-    has_ar_inheritance = "autosomal recessive" in inheritance
+    # Check inheritance is autosomal recessive
+    has_inheritance_passed = False
+    for item in inheritance_set:
+        if "autosomal recessive" in item and item != "pseudoautosomal recessive":
+            has_inheritance_passed = True
+            break
 
     # Check if the variant ID is in the citation set
-    return has_citation and has_plp_clinvar and has_ar_inheritance
+    return has_citation and has_plp_clinvar and has_inheritance_passed
 
 
 def get_evidences_by_strength(evidences, strength, type="pathogenic"):
@@ -1035,10 +1050,17 @@ def modify_intervar_info(row):
     PP3_modified = 0
     BP4_modified = 0
 
+    # Initial
     InterVar_cls, InterVar_evidences = get_intervar_data(InterVar)
     InterVar_priority = get_priority(InterVar_cls)
 
     ACMG_modified_evidences = InterVar_evidences.copy()
+
+    inheritance_set = set()
+    for e1 in inheritance.split("|"):
+        if e1 and e1 != nas_string:
+            for e2 in e1.split(","):
+                inheritance_set.add(e2.strip())
 
     ##### Start Modify intervar evidences #####
     # 1. PVS1 modified by AutoPVS1 strength
@@ -1070,12 +1092,14 @@ def modify_intervar_info(row):
         ACMG_modified_evidences["BP4"] = BP4_strength
 
     # Check PS4
-    if check_PS4(clinvar_variant_id, clinvar_clnsig_final, inheritance):
-        ACMG_modified_evidences["PS4"] = Strength["Normal"]
+    if check_PS4(clinvar_variant_id, clinvar_clnsig_final, inheritance_set):
+        ACMG_modified_evidences["PS4"] = Strength["Moderate"]
         PS4_modified = 1
 
-    # Check PM3
-    if check_PM3(clinvar_variant_id, clinvar_clnsig_final, inheritance):
+    # Check PM3: PS4 Moderate & PS4 Normal must not been added
+    if check_PM3(clinvar_variant_id, clinvar_clnsig_final, inheritance_set) and (
+        ACMG_modified_evidences["PS4"] not in [Strength["Moderate"], Strength["Normal"]]
+    ):
         ACMG_modified_evidences["PM3"] = Strength["Normal"]
         PM3_modified = 1
 
